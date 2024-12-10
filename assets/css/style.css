@@ -1,28 +1,46 @@
+/* General Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
 body {
     margin: 0;
     font-family: Arial, sans-serif;
 }
+
+/* Estilo para el header */
 header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: space-evenly;
     background-color: #f4f4f4;
     padding: 10px 20px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    width: 100%; /* Asegura que el header ocupe todo el ancho */
+    position: fixed; /* Fija el header en la parte superior */
+    top: 0;
+    z-index: 1000; /* Asegura que esté sobre otros elementos */
 }
+
 .left-section {
     display: flex;
     align-items: center;
     gap: 10px;
 }
+
 .menu-icon {
     font-size: 20px;
     color: #333;
     cursor: pointer;
+    transition: color 0.3s ease;
 }
+
 .menu-icon:hover {
     color: #007bff;
 }
+
 .search-bar {
     display: flex;
     align-items: center;
@@ -31,55 +49,84 @@ header {
     border-radius: 5px;
     padding: 5px 10px;
 }
+
 .search-bar input {
     border: none;
     outline: none;
     font-size: 16px;
 }
+
 .search-bar i {
     color: #555;
 }
+
 .title {
     font-size: 20px;
     font-weight: bold;
     color: #333;
-    flex: 1;
     text-align: center;
+    flex: 1; /* Permite que el título tome el espacio restante */
 }
+
 .icons {
     display: flex;
     align-items: center;
-    gap: 15px; 
+    gap: 15px;
 }
+
 .icons i {
     font-size: 20px;
     color: #333;
     cursor: pointer;
+    transition: color 0.3s ease;
 }
+
 .icons i:hover {
     color: #007bff;
 }
+
 .profile {
     display: flex;
     align-items: center;
-    gap: 10px; 
+    gap: 10px;
     cursor: pointer;
 }
 
+/* Estilo para evitar que el contenido principal se esconda detrás del header */
+main {
+    margin-top: 70px; /* Añade espacio para compensar la altura del header */
+    padding: 20px;
+}
 
+/* Estilo del footer */
 footer {
-    background-color: #f4f4f4;
+    background-color:#f4f4f4;
     padding: 20px;
     text-align: center;
     font-size: 14px;
-    color: #555;
-    border-top: 1px solid #ddd;
+    color: #333;
+    border-top: 1px solid #444;
 }
+
 footer a {
-    color: #007bff;
+    color: #333;
     text-decoration: none;
     font-weight: bold;
 }
+
 footer a:hover {
     text-decoration: underline;
+}
+
+/* Responsividad */
+@media (max-width: 768px) {
+    .search-bar {
+        display: none;
+    }
+    .title {
+        font-size: 18px;
+    }
+    footer {
+        font-size: 12px;
+    }
 }
