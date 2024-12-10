@@ -10,6 +10,19 @@ header {
     padding: 10px 20px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
+.left-section {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.menu-icon {
+    font-size: 20px;
+    color: #333;
+    cursor: pointer;
+}
+.menu-icon:hover {
+    color: #007bff;
+}
 .search-bar {
     display: flex;
     align-items: center;
@@ -30,11 +43,13 @@ header {
     font-size: 20px;
     font-weight: bold;
     color: #333;
+    flex: 1;
+    text-align: center;
 }
 .icons {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 15px; 
 }
 .icons i {
     font-size: 20px;
@@ -47,12 +62,6 @@ header {
 .profile {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 10px; 
     cursor: pointer;
-}
-.profile img {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    border: 2px solid #ddd;
 }
