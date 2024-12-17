@@ -199,3 +199,129 @@ footer a:hover {
         justify-content: flex-end;
     }
 }
+
+
+/* Estilos para Proyectos con mayor especificidad */
+body .proyecto {
+    background-color: #ffffff !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+    margin-bottom: 20px !important;
+    padding: 20px !important;
+    transition: transform 0.3s ease !important;
+}
+
+body .proyecto:hover {
+    transform: translateY(-5px) !important;
+}
+
+body .proyecto h3 {
+    color: #333 !important;
+    font-size: 1.2rem !important;
+    margin-bottom: 10px !important;
+    border-bottom: 2px solid #007bff !important;
+    padding-bottom: 5px !important;
+}
+
+body .proyecto p {
+    color: #666 !important;
+    margin-bottom: 15px !important;
+    line-height: 1.6 !important;
+}
+
+body .proyecto img {
+    max-width: 100% !important;
+    height: auto !important;
+    border-radius: 6px !important;
+    margin-bottom: 15px !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+body .proyecto small {
+    color: #888 !important;
+    font-size: 0.8rem !important;
+    display: block !important;
+    margin-bottom: 15px !important;
+    text-align: right !important;
+}
+
+body .comentario {
+    background-color: #f4f4f4 !important;
+    border-radius: 6px !important;
+    padding: 10px !important;
+    margin-bottom: 10px !important;
+    font-size: 0.9rem !important;
+}
+
+body .comentario strong {
+    color: #333 !important;
+    margin-right: 8px !important;
+}
+
+body .proyecto form {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    margin-top: 15px !important;
+}
+
+body .proyecto textarea {
+    width: 100% !important;
+    min-height: 80px !important;
+    border: 1px solid #ddd !important;
+    border-radius: 6px !important;
+    padding: 10px !important;
+    resize: vertical !important;
+    font-size: 0.9rem !important;
+}
+
+body .proyecto button {
+    align-self: flex-start !important;
+    background-color: #007bff !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 6px !important;
+    padding: 8px 15px !important;
+    cursor: pointer !important;
+    transition: background-color 0.3s ease !important;
+}
+
+body .proyecto button:hover {
+    background-color: #0056b3 !important;
+}
+
+body .btn-me-gusta {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    background-color: #f4f4f4 !important;
+    border: 1px solid #ddd !important;
+    border-radius: 6px !important;
+    padding: 8px 12px !important;
+    cursor: pointer !important;
+    transition: background-color 0.3s ease !important;
+}
+
+body .btn-me-gusta:hover {
+    background-color: #e0e0e0 !important;
+}
+
+body .btn-me-gusta span {
+    font-weight: bold !important;
+    color: #007bff !important;
+}
+
+/* Responsividad para Proyectos */
+@media (max-width: 768px) {
+    body .proyecto {
+        padding: 15px !important;
+    }
+
+    body .proyecto h3 {
+        font-size: 1.1rem !important;
+    }
+
+    body .proyecto p {
+        font-size: 0.9rem !important;
+    }
+}

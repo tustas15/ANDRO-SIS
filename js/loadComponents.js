@@ -1,24 +1,52 @@
 document.addEventListener("DOMContentLoaded", function () {
     function loadComponent(selector, file) {
-      const element = document.querySelector(selector);
-      if (element) {
-        fetch(file)
-          .then((response) => {
-            if (!response.ok) {
-              throw new Error(`Error al cargar ${file}: ${response.statusText}`);
-            }
-            return response.text();
-          })
-          .then((html) => {
-            element.innerHTML = html;
-          })
-          .catch((error) => {
-            console.error(error);
-          });
-      }
+        const element = document.querySelector(selector);
+        if (element) {
+            fetch(file)
+                .then((response) => {
+                    if (!response.ok) {
+                        throw new Error(`Error al cargar ${file}: ${response.statusText}`);
+                    }
+                    return response.text();
+                })
+                .then((html) => {
+                    element.innerHTML = html;
+                    // Si cargamos el header, actualizamos el nombre del usuario
+                    if (file === "header.php") {
+                        updateUserName();
+                    }
+                    // Cargar el archivo CSS cuando cargamos los componentes
+                    loadCSS('../assets/css/style.css');
+                })
+                .catch((error) => {
+                    console.error(error);
+                });
+        }
     }
-  
-    loadComponent("header", "header.html");
-    loadComponent("footer", "footer.html");
-  });
-  
+
+    function loadCSS(href) {
+        const link = document.createElement("link");
+        link.rel = "stylesheet";
+        link.type = "text/css";
+        link.href = href + "?v=" + new Date().getTime(); // Añade un parámetro de versión para evitar caché
+        document.head.appendChild(link);
+    }
+
+    function updateUserName() {
+        fetch('../includes/session_data.php')
+            .then(response => response.text())
+            .then(data => {
+                const userNameElement = document.querySelector('.nombreperfil');
+                if (userNameElement) {
+                    userNameElement.textContent = data;  // Actualizamos el nombre
+                }
+            })
+            .catch(error => {
+                console.error('Error al obtener el nombre del usuario:', error);
+            });
+    }
+
+    loadComponent("header", "../includes/header.php");
+    loadComponent("main", "../includes/proyectos.php");
+    loadComponent("footer", "../includes/footer.html");
+});
