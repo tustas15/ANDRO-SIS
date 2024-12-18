@@ -28,21 +28,18 @@ foreach ($proyectos as $proyecto) {
         echo "<strong>" . htmlspecialchars($comentario['nombre']) . "</strong>: " . htmlspecialchars($comentario['comentario']);
         echo "</div>";
     }
-    echo "<h4>Agregar comentario:</h4>";
-    echo "<form class='form-comentario' data-proyecto-id='" . $proyecto['id_proyecto'] . "' action='comentar.php' method='POST' style='display: none;'>";
-echo "    <textarea name='comentario' placeholder='Escribe tu comentario'></textarea>";
-echo "    <input type='hidden' name='id_proyecto' value='" . $proyecto['id_proyecto'] . "'>";
-echo "    <button type='submit'>Comentar</button>";
-echo "</form>";
-    echo "</div>";
+    echo "</div>"; // Cerrar div comentarios
 
-    // Botones "Me gusta" y "Comentarios" en el mismo nivel
+    // Botones "Me gusta" y "Agregar comentario"
     echo "<div class='acciones'>";
+
     // Mostrar "me gusta"
     $stmt_me_gusta = $conn->prepare("SELECT COUNT(*) AS total_me_gusta FROM MeGusta WHERE id_proyecto = :id_proyecto");
     $stmt_me_gusta->bindParam(':id_proyecto', $proyecto['id_proyecto']);
     $stmt_me_gusta->execute();
     $total_me_gusta = $stmt_me_gusta->fetch();
+
+    
 
     echo '<form class="form-me-gusta" data-proyecto-id="' . $proyecto['id_proyecto'] . '" action="megusta.php" method="POST">
             <input type="hidden" name="id_proyecto" value="' . $proyecto['id_proyecto'] . '">
@@ -53,7 +50,15 @@ echo "</form>";
 
     // Botón "Ver comentarios"
     echo "<button class='btn-ver-comentarios'>Ver Comentarios</button>";
+
     echo "</div>"; // Cerrar div acciones
+
+    // Formulario "Agregar comentario"
+    echo "<form class='form-comentario' data-proyecto-id='" . $proyecto['id_proyecto'] . "' action='comentar.php' method='POST'>";
+    echo "    <textarea name='comentario' placeholder='Escribe tu comentario'></textarea>";
+    echo "    <input type='hidden' name='id_proyecto' value='" . $proyecto['id_proyecto'] . "'>";
+    echo "    <button type='submit'>Comentar</button>";
+    echo "</form>";
 
     echo "</div>"; // Cerrar div proyecto
 }
