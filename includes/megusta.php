@@ -2,6 +2,8 @@
 session_start();
 require_once '../conection/conexion.php';
 
+header('Content-Type: application/json');
+
 // Comprobar si el usuario está autenticado
 if (isset($_SESSION['usuario_id']) && isset($_POST['id_proyecto'])) {
     $id_usuario = $_SESSION['usuario_id']; // Obtener el id del usuario
@@ -36,8 +38,10 @@ if (isset($_SESSION['usuario_id']) && isset($_POST['id_proyecto'])) {
     $stmt_me_gusta->execute();
     $total_me_gusta = $stmt_me_gusta->fetch();
 
-    // Redirigir de vuelta al proyecto con el nuevo total de "Me gusta"
-    header('Location: index.html');
+    echo json_encode([
+        'total_me_gusta' => $total_me_gusta['total_me_gusta'], 
+        'accion' => $accion
+    ]);
     exit;
 } else {
     echo json_encode(['error' => 'No autenticado o parámetros inválidos']);
