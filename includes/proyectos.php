@@ -17,7 +17,6 @@ foreach ($proyectos as $proyecto) {
 
     // Mostrar los comentarios
     echo "<h3>Comentarios:</h3>";
-    echo "<div class='comentarios' style='display: none;'>";
     $stmt_comentarios = $conn->prepare("SELECT comentarios.*, Usuarios.nombre FROM Comentarios comentarios 
                                        JOIN Usuarios ON comentarios.id_usuario = Usuarios.id_usuario WHERE comentarios.id_proyecto = :id_proyecto");
     $stmt_comentarios->bindParam(':id_proyecto', $proyecto['id_proyecto']);
@@ -29,15 +28,13 @@ foreach ($proyectos as $proyecto) {
         echo "<strong>" . htmlspecialchars($comentario['nombre']) . "</strong>: " . htmlspecialchars($comentario['comentario']);
         echo "</div>";
     }
-    echo "<h4>Agregar comentario:</h4>";
-echo "<form class='form-comentario' data-proyecto-id='" . $proyecto['id_proyecto'] . "' action='comentar.php' method='POST'>";
-echo "    <textarea name='comentario' placeholder='Escribe tu comentario'></textarea>";
-echo "    <input type='hidden' name='id_proyecto' value='" . $proyecto['id_proyecto'] . "'>";
-echo "    <button type='submit'>Comentar</button>";
-echo "</form>";
 
-echo "</div>";
-echo "<button class='btn-ver-comentarios'>Ver Comentarios</button>";
+    // Formulario para comentar
+    echo "<form action='comentar.php' method='POST'>
+            <textarea name='comentario' placeholder='Escribe tu comentario'></textarea>
+            <input type='hidden' name='id_proyecto' value='" . $proyecto['id_proyecto'] . "'>
+            <button type='submit'>Comentar</button>
+          </form>";
 
     // Mostrar "me gusta"
     $stmt_me_gusta = $conn->prepare("SELECT COUNT(*) AS total_me_gusta FROM MeGusta WHERE id_proyecto = :id_proyecto");
@@ -46,10 +43,10 @@ echo "<button class='btn-ver-comentarios'>Ver Comentarios</button>";
     $total_me_gusta = $stmt_me_gusta->fetch();
 
     // Mostrar el botón de "Me gusta" como un formulario
-    echo '<form class="form-me-gusta" data-proyecto-id="' . $proyecto['id_proyecto'] . '" action="megusta.php" method="POST">
+    echo '<form action="megusta.php" method="POST">
             <input type="hidden" name="id_proyecto" value="' . $proyecto['id_proyecto'] . '">
-            <button type="submit" class="btn-me-gusta" data-proyecto-id="' . $proyecto['id_proyecto'] . '">
-                ' . $total_me_gusta['total_me_gusta'] . ' | Me gusta
+            <button type="submit" class="btn-me-gusta">
+                <span>' . $total_me_gusta['total_me_gusta'] . '</span> Me gusta
             </button>
           </form>';
     echo "</div>"; // Cerrar div proyecto
