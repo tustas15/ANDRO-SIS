@@ -106,17 +106,10 @@ header {
     color: #007bff;
 }
 
-.wrapper {
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh; /* Altura mínima igual a la ventana */
-}
-
 /* Estilo para evitar que el contenido principal se esconda detrás del header */
 main {
     margin-top: 60px;
     padding: 15px;
-    flex: 1;
 }
 
 /* Estilo del footer */
@@ -206,6 +199,7 @@ footer a:hover {
         justify-content: flex-end;
     }
 }
+
 
 /* Estilos para Proyectos con mayor especificidad */
 body .proyecto {
@@ -315,49 +309,6 @@ body .btn-me-gusta:hover {
 body .btn-me-gusta span {
     font-weight: bold !important;
     color: #007bff !important;
-}
-
-/* Botones "Me gusta" y "Comentarios" en el mismo nivel */
-body .proyecto .acciones {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 10px;
-}
-
-body .proyecto .acciones form,
-body .proyecto .acciones .btn-ver-comentarios {
-    margin: 0;
-}
-
-body .proyecto .acciones .btn-me-gusta {
-    background-color: #007bff !important;
-    color: white !important;
-    border: none !important;
-    padding: 8px 15px !important;
-    border-radius: 6px !important;
-    cursor: pointer !important;
-    font-size: 0.9rem !important;
-    transition: background-color 0.3s ease !important;
-}
-
-body .proyecto .acciones .btn-me-gusta:hover {
-    background-color: #0056b3 !important;
-}
-
-body .proyecto .acciones .btn-ver-comentarios {
-    background-color: #28a745 !important;
-    color: white !important;
-    border: none !important;
-    padding: 8px 15px !important;
-    border-radius: 6px !important;
-    cursor: pointer !important;
-    font-size: 0.9rem !important;
-    transition: background-color 0.3s ease !important;
-}
-
-body .proyecto .acciones .btn-ver-comentarios:hover {
-    background-color: #218838 !important;
 }
 
 /* Responsividad para Proyectos */
