@@ -31,7 +31,7 @@ foreach ($proyectos as $proyecto) {
     echo "</div>"; // Cerrar div comentarios
 
     // Botones "Me gusta" y "Agregar comentario"
-    echo "<div class='acciones' style='display: flex; gap: 10px; align-items: center;'>";
+    echo "<div class='acciones' style='display: flex; justify-content: space-between; align-items: center; width: 100%;'>";
 
     // Mostrar "me gusta"
     $stmt_me_gusta = $conn->prepare("SELECT COUNT(*) AS total_me_gusta FROM MeGusta WHERE id_proyecto = :id_proyecto");
@@ -41,17 +41,21 @@ foreach ($proyectos as $proyecto) {
 
     
 
-    echo '<form class="form-me-gusta" data-proyecto-id="' . $proyecto['id_proyecto'] . '" action="megusta.php" method="POST" style="margin: 0;">
+    echo "<div class='left-actions'>";
+echo '<form class="form-me-gusta" data-proyecto-id="' . $proyecto['id_proyecto'] . '" action="megusta.php" method="POST" style="margin: 0;">
         <input type="hidden" name="id_proyecto" value="' . $proyecto['id_proyecto'] . '">
         <button type="submit" class="btn-me-gusta" data-proyecto-id="' . $proyecto['id_proyecto'] . '">
             ' . $total_me_gusta['total_me_gusta'] . ' | Me gusta
         </button>
       </form>';
+echo "</div>";
 
     // Botón "Ver comentarios"
-    echo "<button class='btn-ver-comentarios'>Ver Comentarios</button>";
+    echo "<div class='right-actions'>";
+echo "<button class='btn-ver-comentarios'>Ver Comentarios</button>";
+echo "</div>";
 
-    echo "</div>"; // Cerrar div acciones
+echo "</div>"; // Cerrar div acciones
 
     // Formulario "Agregar comentario"
     echo "<form class='form-comentario' data-proyecto-id='" . $proyecto['id_proyecto'] . "' action='comentar.php' method='POST'>";
