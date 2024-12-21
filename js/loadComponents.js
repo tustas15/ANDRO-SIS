@@ -32,28 +32,52 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function addMeGustaListeners() {
         const meGustaForms = document.querySelectorAll('.form-me-gusta');
+        
         meGustaForms.forEach(form => {
-            form.addEventListener('submit', function(e) {
+            form.addEventListener('submit', async function(e) {
                 e.preventDefault();
+                
                 const proyectoId = this.getAttribute('data-proyecto-id');
                 const btnMeGusta = this.querySelector('.btn-me-gusta');
-
-                fetch('megusta.php', {
-                    method: 'POST',
-                    body: new FormData(this)
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.total_me_gusta !== undefined) {
+                
+                try {
+                    // Deshabilitar el botón temporalmente
+                    btnMeGusta.disabled = true;
+                    
+                    const response = await fetch('megusta.php', {
+                        method: 'POST',
+                        body: new FormData(this)
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        // Actualizar el texto del botón
                         btnMeGusta.innerHTML = `${data.total_me_gusta} | Me gusta`;
+                        
+                        // Cambiar el estilo del botón según la acción
+                        if (data.accion === 'dar') {
+                            btnMeGusta.classList.add('liked');
+                        } else {
+                            btnMeGusta.classList.remove('liked');
+                        }
+                    } else {
+                        console.error('Error:', data.error);
                     }
-                })
-                .catch(error => {
+                } catch (error) {
                     console.error('Error:', error);
-                });
+                } finally {
+                    // Reactivar el botón
+                    btnMeGusta.disabled = false;
+                }
             });
         });
     }
+    
+    // Asegurarse de que esta función se llame cuando se carga la página
+    document.addEventListener("DOMContentLoaded", function() {
+        addMeGustaListeners();
+    });
 
     function addCommentListeners() {
         const commentForms = document.querySelectorAll('.form-comentario');
