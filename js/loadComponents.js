@@ -18,8 +18,11 @@ document.addEventListener("DOMContentLoaded", function () {
                         updateUserName();
                     }
                     loadCSS('../assets/css/style.css');
+<<<<<<< HEAD
                     addMeGustaListeners();
                     addCommentListeners();
+=======
+>>>>>>> parent of 04c2192 (Reapply "Comentarios")
                 })
                 .catch((error) => {
                     console.error(error);
@@ -27,6 +30,17 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
+<<<<<<< HEAD
+=======
+    function loadCSS(href) {
+        const link = document.createElement("link");
+        link.rel = "stylesheet";
+        link.type = "text/css";
+        link.href = href + "?v=" + new Date().getTime(); // Añade un parámetro de versión para evitar caché
+        document.head.appendChild(link);
+    }
+
+>>>>>>> parent of 04c2192 (Reapply "Comentarios")
     function updateUserName() {
         fetch('../includes/session_data.php')
             .then(response => response.text())
@@ -41,6 +55,7 @@ document.addEventListener("DOMContentLoaded", function () {
             });
     }
 
+<<<<<<< HEAD
     function loadCSS(href) {
         const link = document.createElement("link");
         link.rel = "stylesheet";
@@ -57,4 +72,9 @@ document.addEventListener("DOMContentLoaded", function () {
     // Añadir listeners adicionales
     addMeGustaListeners();
     addCommentListeners();
+=======
+    loadComponent("header", "../includes/header.php");
+    loadComponent("main", "../includes/proyectos.php");
+    loadComponent("footer", "../includes/footer.html");
+>>>>>>> parent of 04c2192 (Reapply "Comentarios")
 });
