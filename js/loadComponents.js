@@ -57,56 +57,71 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function addCommentListeners() {
         const commentForms = document.querySelectorAll('.form-comentario');
-        const commentSections = document.querySelectorAll('.comentarios');
         const btnVerComentarios = document.querySelectorAll('.btn-ver-comentarios');
     
-        commentForms.forEach((form, index) => {
-            form.addEventListener('submit', function(e) {
+        commentForms.forEach(form => {
+            form.addEventListener('submit', async function(e) {
                 e.preventDefault();
+                
+                // Deshabilitar el botón de submit temporalmente
+                const submitButton = this.querySelector('button[type="submit"]');
+                submitButton.disabled = true;
+                
                 const proyectoId = this.getAttribute('data-proyecto-id');
-                const commentSection = commentSections[index];
+                const commentSection = this.closest('.proyecto').querySelector('.comentarios');
+                const formData = new FormData(this);
     
-                fetch('comentar.php', {
-                    method: 'POST',
-                    body: new FormData(this)
-                })
-                .then(response => response.json())
-                .then(data => {
+                try {
+                    const response = await fetch('comentar.php', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const data = await response.json();
+                    
                     if (data.success) {
                         // Limpiar el campo de comentario
                         this.querySelector('textarea').value = '';
-    
-                        // Actualizar la sección de comentarios
-                        fetchComments(proyectoId, commentSection);
-                        // Mostrar la sección de comentarios
-                        commentSection.style.display = 'block';
+                        
+                        // Solo actualizar si los comentarios están visibles
+                        if (commentSection.style.display === 'block') {
+                            await fetchComments(proyectoId, commentSection);
+                        }
                     } else {
                         console.error('Error al comentar:', data.error);
                     }
-                })
-                .catch(error => {
+                } catch (error) {
                     console.error('Error:', error);
-                });
+                } finally {
+                    // Reactivar el botón de submit
+                    submitButton.disabled = false;
+                }
             });
         });
     
-        btnVerComentarios.forEach((btn, index) => {
-            btn.addEventListener('click', () => {
-                commentSections[index].style.display = 'block';
-                btn.style.display = 'none';
+        btnVerComentarios.forEach(btn => {
+            btn.addEventListener('click', async function() {
+                const commentSection = this.closest('.proyecto').querySelector('.comentarios');
+                const proyectoId = this.closest('.proyecto').querySelector('.form-comentario').getAttribute('data-proyecto-id');
+                
+                // Mostrar la sección de comentarios y ocultar el botón
+                commentSection.style.display = 'block';
+                this.style.display = 'none';
+                
+                // Cargar los comentarios
+                await fetchComments(proyectoId, commentSection);
             });
         });
     }
-
-    function fetchComments(proyectoId, commentSection) {
-        fetch(`comentar.php?id_proyecto=${proyectoId}`)
-            .then(response => response.text())
-            .then(html => {
-                commentSection.innerHTML = html;
-            })
-            .catch(error => {
-                console.error('Error al cargar los comentarios:', error);
-            });
+    
+    async function fetchComments(proyectoId, commentSection) {
+        try {
+            const response = await fetch(`comentar.php?id_proyecto=${proyectoId}`);
+            const html = await response.text();
+            commentSection.innerHTML = html;
+        } catch (error) {
+            console.error('Error al cargar los comentarios:', error);
+        }
     }
     
 
