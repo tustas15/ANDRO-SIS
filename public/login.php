@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['usuario_id'] = $user['id_usuario'];  // Guardar el ID del usuario
             $_SESSION['nombre'] = $user['nombre'];  // Guardamos el nombre del usuario
             $_SESSION['perfil'] = $user['perfil'];
-            header("Location: ../includes/index.html");
+            header("Location: ../includes/index.php");
             exit;
         } else {
             // Credenciales incorrectas
