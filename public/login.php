@@ -4,7 +4,7 @@ require_once '../conection/conexion.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Capturamos los datos del formulario
-    $correo = trim($_POST['name']);
+    $correo = trim($_POST['correo']);
     $password = trim($_POST['password']);
 
     try {
@@ -17,10 +17,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Verificar si existe el usuario y si las contraseñas coinciden
         if ($user && $password === $user['contrasena']) {
             // Credenciales correctas: guardar el nombre en la sesión
-            $_SESSION['usuario_id'] = $user['id_usuario'];  // Guardar el ID del usuario
+            $_SESSION['id_usuario'] = $user['id_usuario'];  // Guardar el ID del usuario
             $_SESSION['nombre'] = $user['nombre'];  // Guardamos el nombre del usuario
             $_SESSION['perfil'] = $user['perfil'];
-            header("Location: ../includes/index.php");
+            header("Location: ../includes/index.php?view=proyectos");
             exit;
         } else {
             // Credenciales incorrectas
@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <label>Correo</label>
   </div>
   <div class="inputForm">
-    <input type="text" name="name" class="input" placeholder="Ingresa tu correo" required />
+  <input type="text" name="correo" class="input" placeholder="Ingresa tu correo" required />
   </div>
 
   <div class="flex-column">

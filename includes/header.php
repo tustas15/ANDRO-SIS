@@ -1,9 +1,11 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) {
-    session_start();  // Iniciar la sesión si no está iniciada
+    session_start();
 }
 ?>
+
 <header class="header">
+    
     <div class="left-section">
         <?php if (isset($_SESSION['perfil']) && ($_SESSION['perfil'] === 'admin' || $_SESSION['perfil'] === 'contratista')): ?>
             <i class="fas fa-bars menu-icon" aria-label="Abrir menú"></i>
@@ -13,19 +15,23 @@ if (session_status() === PHP_SESSION_NONE) {
             <input type="text" placeholder="Buscar..." aria-label="Caja de búsqueda">
         </div>
     </div>
-    <div class="title">ANDRO - SIS</div>
+    <a href="index.php?view=proyectos" class="title">ANDRO - SIS</a>
     <div class="icons">
         <i class="fas fa-bell" aria-label="Notificaciones"></i>
         <div class="profile">
-            <i class="fas fa-user-circle" aria-label="Perfil de usuario"></i>
+            <i class="fas fa-user-circle" id="user-icon" aria-label="Perfil de usuario"></i>
             <div class="nombreperfil">
                 <?php
                 if (isset($_SESSION['nombre'])) {
-                    echo htmlspecialchars($_SESSION['nombre'], ENT_QUOTES, 'UTF-8');  // Evitar inyección XSS
+                    echo htmlspecialchars($_SESSION['nombre'], ENT_QUOTES, 'UTF-8');
                 } else {
-                    echo "Invitado";  // Si no está autenticado, mostrar "Invitado"
+                    echo "Invitado";
                 }
                 ?>
+            </div>
+            <div class="dropdown-menu" id="dropdown-menu">
+                <a href="index.php?view=perfil">Perfil</a>
+                <a href="logout.php">Cerrar Sesión</a>
             </div>
         </div>
     </div>

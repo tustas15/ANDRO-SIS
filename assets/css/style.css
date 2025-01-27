@@ -91,11 +91,38 @@ header {
     color: #007bff;
 }
 
+/* Estilos para el menú desplegable */
 .profile {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    position: relative;
     cursor: pointer;
+}
+
+.dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    min-width: 150px;
+}
+
+.dropdown-menu a {
+    display: block;
+    padding: 10px;
+    text-decoration: none;
+    color: #333;
+}
+
+.dropdown-menu a:hover {
+    background-color: #f1f1f1;
+}
+
+/* Mostrar el menú desplegable cuando está activo */
+.dropdown-menu.active {
+    display: block;
 }
 
 .nombreperfil {
@@ -328,5 +355,103 @@ body .btn-me-gusta span {
 
     body .proyecto p {
         font-size: 0.9rem !important;
+    }
+}
+
+/* Estilos para Perfil de Usuario - Manteniendo coherencia con el CSS existente */
+
+
+.container h1 {
+    color: #333;
+    font-size: 1.5rem;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 10px;
+    text-align: center;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 5px;
+    font-size: 0.9rem;
+}
+
+.form-group input[type="text"],
+.form-group input[type="email"] {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #007bff;
+}
+
+.form-group img {
+    display: block;
+    margin-top: 10px;
+    border-radius: 50%;
+    border: 2px solid #ddd;
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+}
+
+button[type="submit"] {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.3s ease;
+}
+
+button[type="submit"]:hover {
+    background-color: #0056b3;
+}
+
+.mensaje {
+    padding: 10px;
+    margin-bottom: 15px;
+    background-color: #dff0d8;
+    border: 1px solid #d0e9c6;
+    color: #3c763d;
+    border-radius: 4px;
+    font-size: 0.85rem;
+}
+
+/* Responsividad para Perfil */
+@media (max-width: 768px) {
+    .container {
+        margin: 15px;
+        padding: 15px;
+    }
+    
+    .container h1 {
+        font-size: 1.3rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .form-group input[type="text"],
+    .form-group input[type="email"] {
+        font-size: 0.85rem;
+        padding: 6px;
+    }
+    
+    button[type="submit"] {
+        width: 100%;
+        padding: 12px;
     }
 }

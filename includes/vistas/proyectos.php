@@ -72,4 +72,5 @@ try {
 } catch (PDOException $e) {
     echo "<p>Error al cargar los proyectos: " . htmlspecialchars($e->getMessage()) . "</p>";
 }
+
 ?>

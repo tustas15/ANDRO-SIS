@@ -20,9 +20,9 @@ $vista = isset($_GET['view']) ? $_GET['view'] : 'proyectos';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inicio</title>
-    <link href="../assets/css/style.css" rel="stylesheet">
+    <link href="../assets/css/style.css" rel="stylesheet"> <!-- Ruta corregida -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <script src="../js/loadComponents.js"></script>
+    
 </head>
 <body>
     <?php require 'header.php'; ?>
@@ -32,5 +32,8 @@ $vista = isset($_GET['view']) ? $_GET['view'] : 'proyectos';
     </main>
     
     <?php require 'footer.php'; ?>
+
+    <!-- Cargar el script al final del body -->
+    <script src="../js/loadComponents.js"></script> 
 </body>
 </html>
