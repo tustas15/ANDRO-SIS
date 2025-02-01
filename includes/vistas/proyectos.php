@@ -54,6 +54,8 @@ function usuarioDioMegusta($id_usuario, $id_proyecto, $conn) {
 <head>
     <meta charset="UTF-8">
     <title>Proyectos</title>
+    <!-- Incluir FontAwesome para los íconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         .proyecto {
             border: 1px solid #ccc;
@@ -72,6 +74,17 @@ function usuarioDioMegusta($id_usuario, $id_proyecto, $conn) {
             color: red;
             display: none;
             margin-top: 5px;
+        }
+        .acciones-comentario {
+            margin-left: 10px;
+        }
+        .acciones-comentario i {
+            cursor: pointer;
+            margin-right: 5px;
+        }
+        .editar-comentario {
+            display: none;
+            margin-top: 10px;
         }
     </style>
 </head>
@@ -103,14 +116,26 @@ function usuarioDioMegusta($id_usuario, $id_proyecto, $conn) {
 
             <!-- Sección de comentarios -->
             <div id="comentarios-<?php echo $proyecto['id_proyecto']; ?>" class="comentarios">
-    <?php $comentarios = obtenerComentarios($proyecto['id_proyecto'], $conn); ?>
-    <?php foreach ($comentarios as $comentario): ?>
-        <p>
-            <strong><?php echo htmlspecialchars($comentario['nombre'] . ' ' . $comentario['apellido']); ?>:</strong> 
-            <?php echo htmlspecialchars($comentario['comentario']); ?>
-        </p>
-    <?php endforeach; ?>
-</div>
+                <?php $comentarios = obtenerComentarios($proyecto['id_proyecto'], $conn); ?>
+                <?php foreach ($comentarios as $comentario): ?>
+                    <p>
+                        <strong><?php echo htmlspecialchars($comentario['nombre'] . ' ' . $comentario['apellido']); ?>:</strong> 
+                        <span id="comentario-texto-<?php echo $comentario['id_comentario']; ?>"><?php echo htmlspecialchars($comentario['comentario']); ?></span>
+                        <?php if (isset($_SESSION['id_usuario']) && $_SESSION['id_usuario'] == $comentario['id_usuario']): ?>
+                            <span class="acciones-comentario">
+                                <i class="fas fa-pencil-alt" onclick="mostrarEditarComentario(<?php echo $comentario['id_comentario']; ?>)"></i>
+                                <i class="fas fa-trash" onclick="eliminarComentario(<?php echo $comentario['id_comentario']; ?>)"></i>
+                            </span>
+                        <?php endif; ?>
+                    </p>
+                    <!-- Formulario para editar comentario -->
+                    <div id="editar-comentario-<?php echo $comentario['id_comentario']; ?>" class="editar-comentario">
+                        <textarea id="editar-texto-<?php echo $comentario['id_comentario']; ?>"><?php echo htmlspecialchars($comentario['comentario']); ?></textarea>
+                        <button onclick="guardarEdicionComentario(<?php echo $comentario['id_comentario']; ?>)">Guardar</button>
+                        <button onclick="cancelarEdicionComentario(<?php echo $comentario['id_comentario']; ?>)">Cancelar</button>
+                    </div>
+                <?php endforeach; ?>
+            </div>
         </div>
     <?php endforeach; ?>
 
@@ -135,6 +160,59 @@ function usuarioDioMegusta($id_usuario, $id_proyecto, $conn) {
                 comentarios.style.display = 'none';
             }
         }
+
+        function mostrarEditarComentario(id_comentario) {
+            document.getElementById('editar-comentario-' + id_comentario).style.display = 'block';
+        }
+
+        function cancelarEdicionComentario(id_comentario) {
+            document.getElementById('editar-comentario-' + id_comentario).style.display = 'none';
+        }
+
+        function guardarEdicionComentario(id_comentario) {
+            const nuevoComentario = document.getElementById('editar-texto-' + id_comentario).value;
+            fetch('acciones.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `action=editar_comentario&id_comentario=${id_comentario}&comentario=${encodeURIComponent(nuevoComentario)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload(); // Recargar la página para ver los cambios
+                } else {
+                    alert(data.message || 'Error al editar el comentario');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error de conexión');
+            });
+        }
+
+        function eliminarComentario(id_comentario) {
+    fetch('acciones.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `action=eliminar_comentario&id_comentario=${id_comentario}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload(); // Recargar la página para ver los cambios
+        } else {
+            alert(data.message || 'Error al eliminar el comentario');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error de conexión');
+    });
+}
 
         document.addEventListener('DOMContentLoaded', function() {
             // Manejar me gusta
@@ -178,47 +256,68 @@ function usuarioDioMegusta($id_usuario, $id_proyecto, $conn) {
             });
             
             // Manejar comentarios
-            document.querySelectorAll('.form-comentario').forEach(form => {
-                form.addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    const proyectoId = this.dataset.proyectoId;
-                    const comentarioText = this.querySelector('textarea').value;
-                    const errorDiv = this.querySelector('.error-message');
-                    
-                    fetch('acciones.php', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                        },
-                        body: `action=comentar&id_proyecto=${proyectoId}&comentario=${encodeURIComponent(comentarioText)}`
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            // Actualizar la lista de comentarios
-                            const comentariosDiv = document.getElementById(`comentarios-${proyectoId}`);
-        comentariosDiv.innerHTML = data.comentarios.map(comentario => 
-            `<p><strong>${comentario.nombre} ${comentario.apellido}:</strong> ${comentario.comentario}</p>`
-        ).join('');
-                            
-                            // Mostrar los comentarios si están ocultos
-                            comentariosDiv.style.display = 'block';
-                            
-                            // Limpiar el textarea y el mensaje de error
-                            this.querySelector('textarea').value = '';
-                            errorDiv.style.display = 'none';
-                        } else {
-                            errorDiv.textContent = data.message || 'Error al procesar el comentario';
-                            errorDiv.style.display = 'block';
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        errorDiv.textContent = 'Error de conexión';
-                        errorDiv.style.display = 'block';
-                    });
-                });
-            });
+            // En la sección de manejar comentarios, actualizar la lógica para mostrar los íconos de editar y eliminar
+document.querySelectorAll('.form-comentario').forEach(form => {
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const proyectoId = this.dataset.proyectoId;
+        const comentarioText = this.querySelector('textarea').value;
+        const errorDiv = this.querySelector('.error-message');
+        
+        fetch('acciones.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `action=comentar&id_proyecto=${proyectoId}&comentario=${encodeURIComponent(comentarioText)}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Actualizar la lista de comentarios
+                const comentariosDiv = document.getElementById(`comentarios-${proyectoId}`);
+                comentariosDiv.innerHTML = data.comentarios.map(comentario => {
+                    let acciones = '';
+                    if (comentario.pertenece_al_usuario) {
+                        acciones = `
+                            <span class="acciones-comentario">
+                                <i class="fas fa-pencil-alt" onclick="mostrarEditarComentario(${comentario.id_comentario})"></i>
+                                <i class="fas fa-trash" onclick="eliminarComentario(${comentario.id_comentario})"></i>
+                            </span>
+                        `;
+                    }
+                    return `
+                        <p>
+                            <strong>${comentario.nombre} ${comentario.apellido}:</strong> 
+                            <span id="comentario-texto-${comentario.id_comentario}">${comentario.comentario}</span>
+                            ${acciones}
+                        </p>
+                        <div id="editar-comentario-${comentario.id_comentario}" class="editar-comentario">
+                            <textarea id="editar-texto-${comentario.id_comentario}">${comentario.comentario}</textarea>
+                            <button onclick="guardarEdicionComentario(${comentario.id_comentario})">Guardar</button>
+                            <button onclick="cancelarEdicionComentario(${comentario.id_comentario})">Cancelar</button>
+                        </div>
+                    `;
+                }).join('');
+                
+                // Mostrar los comentarios si están ocultos
+                comentariosDiv.style.display = 'block';
+                
+                // Limpiar el textarea y el mensaje de error
+                this.querySelector('textarea').value = '';
+                errorDiv.style.display = 'none';
+            } else {
+                errorDiv.textContent = data.message || 'Error al procesar el comentario';
+                errorDiv.style.display = 'block';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            errorDiv.textContent = 'Error de conexión';
+            errorDiv.style.display = 'block';
+        });
+    });
+});
         });
     </script>
 </body>
