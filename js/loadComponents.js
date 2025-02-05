@@ -133,6 +133,8 @@ function loadCSS(href) {
     document.head.appendChild(link);
 }
 
+
+
 // Código del Paso 3: Manejo del menú desplegable del perfil
 document.addEventListener('DOMContentLoaded', function() {
     const userIcon = document.getElementById('user-icon');

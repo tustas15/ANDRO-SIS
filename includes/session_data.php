@@ -6,9 +6,3 @@ if (isset($_SESSION['nombre'])) {
 } else {
     echo 'Invitado';  // Si no está autenticado, devolver 'Invitado'
 }
-
-if(isset(($_SESSION['perfil']))){
-    echo $_SESSION['perfil'];
-} else{
-    echo 'perfil no definido';
-}
