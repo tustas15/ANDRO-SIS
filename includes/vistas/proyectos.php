@@ -66,6 +66,17 @@ function usuarioDioMegusta($id_usuario, $id_proyecto, $conn) {
             display: none;
             margin-top: 10px;
         }
+        .botones-final {
+    margin-top: 10px;
+    display: flex;
+    gap: 10px;
+}
+
+.form-comentario textarea {
+    width: 100%;
+    margin: 10px 0;
+    min-height: 80px;
+}
         .btn-megusta.activo {
             background-color: #007bff;
             color: white;
@@ -99,20 +110,23 @@ function usuarioDioMegusta($id_usuario, $id_proyecto, $conn) {
 
             <!-- Botón para dar o quitar "me gusta" -->
             <form class="form-megusta" data-proyecto-id="<?php echo $proyecto['id_proyecto']; ?>">
-                <button type="submit" class="btn-megusta <?php echo (isset($_SESSION['id_usuario']) && usuarioDioMegusta($_SESSION['id_usuario'], $proyecto['id_proyecto'], $conn)) ? 'activo' : ''; ?>">
-                    <span class="total-megusta"><?php echo obtenerTotalMegustas($proyecto['id_proyecto'], $conn); ?></span> | Me gusta
-                </button>
-                <div class="error-message"></div>
-            </form>
+        <button type="submit" class="btn-megusta <?php echo (isset($_SESSION['id_usuario']) && usuarioDioMegusta($_SESSION['id_usuario'], $proyecto['id_proyecto'], $conn)) ? 'activo' : ''; ?>">
+            <span class="total-megusta"><?php echo obtenerTotalMegustas($proyecto['id_proyecto'], $conn); ?></span> | Me gusta
+        </button>
+        <div class="error-message"></div>
+    </form>
 
             <!-- Formulario para comentar -->
             <form class="form-comentario" data-proyecto-id="<?php echo $proyecto['id_proyecto']; ?>">
-                <textarea name="comentario" placeholder="Escribe tu comentario..." required></textarea>
-                <button type="submit">Comentar</button>
-                <div class="error-message"></div>
-            </form>
-
-            <button onclick="mostrarComentarios(<?php echo $proyecto['id_proyecto']; ?>)">Comentarios</button>
+        <textarea name="comentario" placeholder="Escribe tu comentario..." required></textarea>
+        
+        <!-- Botones ABAJO -->
+        <div class="botones-final">
+            <button type="submit">Comentar</button>
+            <button type="button" onclick="mostrarComentarios(<?php echo $proyecto['id_proyecto']; ?>)">Comentarios</button>
+        </div>
+        <div class="error-message"></div>
+    </form>
 
             <!-- Sección de comentarios -->
             <div id="comentarios-<?php echo $proyecto['id_proyecto']; ?>" class="comentarios">
