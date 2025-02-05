@@ -32,33 +32,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ?>
 
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar Sesión</title>
+    <link href="../assets/css/login.css" rel="stylesheet" />
+</head>
+<body>
+    <form class="form" method="POST" action="">
+        <h2>Iniciar Sesión</h2>
+        <?php if (isset($error)): ?>
+            <p class="error-message"><?php echo $error; ?></p>
+        <?php endif; ?>
+        <div class="flex-column">
+            <label>Correo</label>
+        </div>
+        <div class="inputForm">
+            <input type="text" name="correo" class="input" placeholder="Ingresa tu correo" required />
+        </div>
 
-<link href="../assets/css/login.css" rel="stylesheet" />
-<form class="form" method="POST" action="">
-  <?php if (isset($error)): ?>
-    <p class="error-message"><?php echo $error; ?></p>
-  <?php endif; ?>
-  <div class="flex-column">
-    <label>Correo</label>
-  </div>
-  <div class="inputForm">
-  <input type="text" name="correo" class="input" placeholder="Ingresa tu correo" required />
-  </div>
+        <div class="flex-column">
+            <label>Contraseña</label>
+        </div>
+        <div class="inputForm">
+            <input type="password" name="password" class="input" placeholder="Ingresa tu contraseña" required />
+        </div>
 
-  <div class="flex-column">
-    <label>Contraseña</label>
-  </div>
-  <div class="inputForm">
-    <input type="password" name="password" class="input" placeholder="Ingresa tu contraseña" required />
-  </div>
-
-  <div class="flex-row">
-    <div>
-      <input type="checkbox" name="remember" />
-      <label>Recuérdame</label>
-    </div>
-    <span class="span">¿Olvidó su contraseña?</span>
-  </div>
-  <button type="submit" class="button-submit">Iniciar sesión</button>
-  <p class="p">¿No tienes una cuenta? <span class="span">Regístrate</span></p>
-</form>
+        <div class="flex-row">
+            <div>
+                <input type="checkbox" name="remember" />
+                <label>Recuérdame</label>
+            </div>
+            <a href="#" class="span">¿Olvidó su contraseña?</a>
+        </div>
+        <button type="submit" class="button-submit">Iniciar sesión</button>
+        <p class="p">¿No tienes una cuenta? <a href="#" class="span">Regístrate</a></p>
+    </form>
+</body>
+</html>
