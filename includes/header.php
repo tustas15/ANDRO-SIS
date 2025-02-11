@@ -68,10 +68,10 @@ if (session_status() === PHP_SESSION_NONE) {
             </div>
         </div>
     <?php endif; ?>
-    <div class="search-bar">
+   <!-- <div class="search-bar">
         <i class="fas fa-search" aria-label="Buscar"></i>
         <input type="text" placeholder="Buscar..." aria-label="Caja de búsqueda">
-    </div>
+    </div>-->
 </div>
     <a href="index.php?view=proyectos" class="title">ANDRO - SIS</a>
     <div class="icons">
@@ -82,9 +82,7 @@ if (session_status() === PHP_SESSION_NONE) {
             <?php
             if (isset($_SESSION['nombre'])) {
                 echo htmlspecialchars($_SESSION['nombre'], ENT_QUOTES, 'UTF-8');
-            } else {
-                echo "Invitado";
-            }
+            } 
             ?>
         </div>
         <div class="dropdown-menu" id="dropdown-menu">
