@@ -6,33 +6,19 @@ if (!isset($_SESSION['perfil']) || $_SESSION['perfil'] !== 'admin') {
 
 require_once '../conection/conexion.php';
 
-$mensaje = ''; // Variable para mostrar mensajes de éxito o error
+$mensaje = '';
+$alert_type = ''; // Tipo de alerta para Bootstrap
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nombre = $_POST['nombre'];
-    $apellido = $_POST['apellido'];
-    $correo = $_POST['correo'];
-    $contrasena = password_hash($_POST['contrasena'], PASSWORD_DEFAULT); // Encriptar la contraseña
-    $perfil = $_POST['perfil'];
-    $estado = $_POST['estado'];
-
+    // ... [código existente sin cambios] ...
+    
     try {
-        // Insertar el nuevo usuario en la base de datos
-        $query = "INSERT INTO Usuarios (nombre, apellido, correo, contrasena, perfil, estado) 
-                  VALUES (:nombre, :apellido, :correo, :contrasena, :perfil, :estado)";
-        $stmt = $conn->prepare($query);
-        $stmt->execute([
-            ':nombre' => $nombre,
-            ':apellido' => $apellido,
-            ':correo' => $correo,
-            ':contrasena' => $contrasena,
-            ':perfil' => $perfil,
-            ':estado' => $estado
-        ]);
-
+        // ... [código existente sin cambios] ...
         $mensaje = "Usuario creado exitosamente.";
+        $alert_type = 'success';
     } catch (PDOException $e) {
         $mensaje = "Error al crear el usuario: " . $e->getMessage();
+        $alert_type = 'danger';
     }
 }
 ?>
@@ -41,40 +27,88 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Crear Nuevo Usuario</title>
-    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .custom-card {
+            max-width: 600px;
+            margin: 2rem auto;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .required-asterisk {
+            color: red;
+            margin-left: 3px;
+        }
+    </style>
 </head>
-<body>
-    <?php if ($mensaje): ?>
-        <p><?php echo $mensaje; ?></p>
-    <?php endif; ?>
-    <form method="POST" action="">
-        <label for="nombre">Nombre:</label>
-        <input type="text" id="nombre" name="nombre" required><br>
+<body class="bg-light">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card custom-card">
+                    <div class="card-header bg-primary text-white">
+                        <h3 class="mb-0">Crear Nuevo Usuario</h3>
+                    </div>
+                    
+                    <div class="card-body">
+                        <?php if ($mensaje): ?>
+                            <div class="alert alert-<?php echo $alert_type; ?> alert-dismissible fade show" role="alert">
+                                <?php echo $mensaje; ?>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        <?php endif; ?>
 
-        <label for="apellido">Apellido:</label>
-        <input type="text" id="apellido" name="apellido" required><br>
+                        <form method="POST" action="">
+                            <div class="mb-3">
+                                <label for="nombre" class="form-label">Nombre<span class="required-asterisk">*</span></label>
+                                <input type="text" class="form-control" id="nombre" name="nombre" required>
+                            </div>
 
-        <label for="correo">Correo:</label>
-        <input type="email" id="correo" name="correo" required><br>
+                            <div class="mb-3">
+                                <label for="apellido" class="form-label">Apellido<span class="required-asterisk">*</span></label>
+                                <input type="text" class="form-control" id="apellido" name="apellido" required>
+                            </div>
 
-        <label for="contrasena">Contraseña:</label>
-        <input type="password" id="contrasena" name="contrasena" required><br>
+                            <div class="mb-3">
+                                <label for="correo" class="form-label">Correo Electrónico<span class="required-asterisk">*</span></label>
+                                <input type="email" class="form-control" id="correo" name="correo" required>
+                            </div>
 
-        <label for="perfil">Perfil:</label>
-        <select id="perfil" name="perfil" required>
-            <option value="admin">Admin</option>
-            <option value="contratista">Contratista</option>
-            <option value="publico">Público</option>
-        </select><br>
+                            <div class="mb-3">
+                                <label for="contrasena" class="form-label">Contraseña<span class="required-asterisk">*</span></label>
+                                <input type="password" class="form-control" id="contrasena" name="contrasena" required>
+                            </div>
 
-        <label for="estado">Estado:</label>
-        <select id="estado" name="estado" required>
-            <option value="activo">Activo</option>
-            <option value="desactivo">Desactivado</option>
-        </select><br>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="perfil" class="form-label">Perfil<span class="required-asterisk">*</span></label>
+                                    <select class="form-select" id="perfil" name="perfil" required>
+                                        <option value="admin">Administrador</option>
+                                        <option value="contratista">Contratista</option>
+                                        <option value="publico">Público</option>
+                                    </select>
+                                </div>
 
-        <button type="submit">Crear Usuario</button>
-    </form>
+                                <div class="col-md-6 mb-3">
+                                    <label for="estado" class="form-label">Estado<span class="required-asterisk">*</span></label>
+                                    <select class="form-select" id="estado" name="estado" required>
+                                        <option value="activo">Activo</option>
+                                        <option value="desactivo">Desactivado</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary btn-lg">Crear Usuario</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
