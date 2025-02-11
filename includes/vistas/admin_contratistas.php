@@ -20,7 +20,7 @@ $contratistas = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <h1>Gestionar Contratistas</h1>
+    <div class="container">
     <table>
         <thead>
             <tr>
@@ -48,5 +48,6 @@ $contratistas = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <?php endforeach; ?>
         </tbody>
     </table>
+    </div>
 </body>
 </html>
