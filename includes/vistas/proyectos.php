@@ -7,7 +7,13 @@ $proyectosPorPagina = 5;
 $offset = ($pagina - 1) * $proyectosPorPagina;
 
 // Obtener los proyectos de la base de datos
-$stmt = $conn->prepare("SELECT * FROM Proyectos LIMIT :limit OFFSET :offset");
+// Obtener los proyectos de la base de datos con el nombre del contratista
+$stmt = $conn->prepare("
+    SELECT p.*, u.nombre as nombre_contratista, u.apellido as apellido_contratista 
+    FROM Proyectos p 
+    INNER JOIN Usuarios u ON p.id_contratista = u.id_usuario 
+    LIMIT :limit OFFSET :offset
+");
 $stmt->bindParam(':limit', $proyectosPorPagina, PDO::PARAM_INT);
 $stmt->bindParam(':offset', $offset, PDO::PARAM_INT);
 $stmt->execute();
@@ -103,6 +109,7 @@ function usuarioDioMegusta($id_usuario, $id_proyecto, $conn) {
     <?php foreach ($proyectos as $proyecto): ?>
         <div class="proyecto">
             <h2><?php echo htmlspecialchars($proyecto['titulo']); ?></h2>
+            <h3>Contratista: <a href="index.php?view=perfil_contratista&id=<?php echo $proyecto['id_contratista']; ?>"><?php echo htmlspecialchars($proyecto['nombre_contratista']) . ' ' . htmlspecialchars($proyecto['apellido_contratista']); ?></a></h3>
             <p><?php echo htmlspecialchars($proyecto['descripcion']); ?></p>
             <img src="<?php echo htmlspecialchars($proyecto['imagen']); ?>" alt="Imagen del proyecto" width="200">
             <p>Etapa: <?php echo htmlspecialchars($proyecto['etapa']); ?></p>
