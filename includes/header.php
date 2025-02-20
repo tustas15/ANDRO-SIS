@@ -73,7 +73,19 @@ if (session_status() === PHP_SESSION_NONE) {
         <input type="text" placeholder="Buscar..." aria-label="Caja de búsqueda">
     </div>-->
 </div>
-    <a href="index.php?view=proyectos" class="title">ANDRO - SIS</a>
+<a href="<?php
+    if (isset($_SESSION['perfil'])) {
+        if ($_SESSION['perfil'] === 'admin') {
+            echo 'index.php?view=categorias'; // O la URL que desees para el admin
+        } elseif ($_SESSION['perfil'] === 'contratista') {
+            echo 'index.php?view=proyectos'; // O la URL que desees para el contratista
+        } else {
+            echo 'index.php?view=proyectos'; // URL por defecto si el perfil es otro
+        }
+    } else {
+        echo 'index.php?view=proyectos'; // Si no hay sesión, redirige al proyecto
+    }
+?>" class="title">ANDRO - SIS</a>
     <div class="icons">
     <i class="fas fa-bell" aria-label="Notificaciones"></i>
     <div class="profile">

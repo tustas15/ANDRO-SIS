@@ -172,7 +172,7 @@ $proyectos = $stmt->fetchAll(PDO::FETCH_ASSOC);
         .img-thumbnail { max-width: 150px; max-height: 100px; object-fit: cover; }
         .badge-planificacion { background-color: #ffc107; }
         .badge-ejecucion { background-color: #0d6efd; }
-        .badge-finalizado { background-color: #198754; }
+        .badge-finalizado { background-color:#007bff; }
         .hover-shadow:hover { box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important; }
     </style>
 </head>

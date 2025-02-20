@@ -20,7 +20,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['id_usuario'] = $user['id_usuario'];  // Guardar el ID del usuario
             $_SESSION['nombre'] = $user['nombre'];  // Guardamos el nombre del usuario
             $_SESSION['perfil'] = $user['perfil'];
-            header("Location: ../includes/index.php?view=proyectos");
+            switch ($user['perfil']) {
+                case 'admin':
+                    header("Location: ../includes/index.php?view=categorias");
+                    break;
+                case 'contratista':
+                    header("Location: ../contratista/proyectos.php");
+                    break;
+                case 'publico':
+                default:
+                    header("Location: ../includes/index.php?view=proyectos");
+                    break;
+            }
             exit;
         } else {
             // Credenciales incorrectas
