@@ -16,8 +16,8 @@ try {
 
     // Obtener los proyectos de la categoría
     $stmt_proyectos = $conn->prepare("
-        SELECT id_proyecto, titulo 
-        FROM proyectos 
+        SELECT id_proyectos, titulo 
+        FROM proyecto 
         WHERE id_categoria = ?
     ");
     $stmt_proyectos->execute([$id_categoria]);
@@ -78,7 +78,7 @@ try {
         }
 
         a:hover {
-            color: #007bff;
+            color:rgb(43, 68, 95);
         }
     </style>
 </head>
@@ -88,7 +88,7 @@ try {
 <ul>
     <?php foreach ($proyectos as $proyecto): ?>
         <li>
-            <a href="index.php?view=proyecto_publicaciones&id_proyecto=<?= $proyecto['id_proyecto'] ?>">
+            <a href="index.php?view=proyecto_publicaciones&id_proyecto=<?= $proyecto['id_proyectos'] ?>">
                 <?= htmlspecialchars($proyecto['titulo']) ?>
             </a>
         </li>

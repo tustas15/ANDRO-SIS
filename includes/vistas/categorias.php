@@ -3,9 +3,9 @@ require_once '../conection/conexion.php';
 
 try {
     $stmt = $conn->query("
-        SELECT c.id_categoria, c.nombre, COUNT(p.id_proyecto) AS total_proyectos
+        SELECT c.id_categoria, c.nombre, COUNT(p.id_proyectos) AS total_proyectos
         FROM categorias c
-        LEFT JOIN proyectos p ON c.id_categoria = p.id_categoria
+        LEFT JOIN proyecto p ON c.id_categoria = p.id_categoria
         GROUP BY c.id_categoria, c.nombre
     ");
     $categorias = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -52,6 +52,15 @@ try {
         }
         .category-card a:hover {
             text-decoration: underline;
+        }
+        a {
+            text-decoration: none;
+            color:#007bff;
+            font-size: 1.1em;
+        }
+        a:hover {
+            color:rgb(43, 68, 95);
+            text-decoration: none;
         }
     </style>
 </head>

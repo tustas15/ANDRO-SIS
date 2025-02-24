@@ -25,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     header("Location: ../includes/index.php?view=categorias");
                     break;
                 case 'contratista':
-                    header("Location: ../contratista/proyectos.php");
+                    header("Location: ../includes/index.php?view=proyectos");
                     break;
                 case 'publico':
                 default:

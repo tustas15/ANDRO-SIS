@@ -4,13 +4,15 @@ require_once '../conection/conexion.php';
 $id_proyecto = $_GET['id_proyecto'] ?? 0;
 
 try {
-    $stmt = $conn->prepare("
-        SELECT titulo, descripcion, fecha_publicacion, imagen, etapa 
-        FROM proyectos 
-        WHERE id_proyecto = ?
-    ");
+    // Obtener los datos del proyecto
+    $stmt = $conn->prepare("SELECT titulo, fecha_publicacion, etapa FROM proyecto WHERE id_proyectos = ?");
     $stmt->execute([$id_proyecto]);
-    $publicaciones = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $publicacion = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    // Obtener las publicaciones asociadas al proyecto
+    $stmtpublicacion = $conn->prepare("SELECT titulo, descripcion,fecha_publicacion, imagen FROM publicacion WHERE id_proyectos = ?");
+    $stmtpublicacion->execute([$id_proyecto]);
+    $proyectos = $stmtpublicacion->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     die("Error en la consulta: " . $e->getMessage());
 }
@@ -30,20 +32,17 @@ try {
             margin: 0;
             padding: 0;
         }
-
         h2 {
-            background-color: #004C8C;
+            background-color:  #007bff;
             color: white;
             text-align: center;
             padding: 20px;
             margin: 0;
         }
-
         ul {
             list-style: none;
             padding: 20px;
         }
-
         li {
             background-color: #ffffff;
             border: 1px solid #A6D1E6;
@@ -52,31 +51,15 @@ try {
             padding: 20px;
             box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.1);
         }
-
         h3 {
             color: #004C8C;
             font-size: 1.5em;
             margin-bottom: 10px;
         }
-
         p {
             color: #5A9BD5;
             line-height: 1.6;
         }
-
-        small {
-            display: block;
-            margin-top: 10px;
-            color: #A6D1E6;
-        }
-
-        /* Estilo para la fecha de publicación */
-        small {
-            font-size: 0.9em;
-            text-align: right;
-        }
-
-        /* Imagen */
         .imagen-publicacion {
             width: 100%;
             max-width: 600px;
@@ -84,10 +67,8 @@ try {
             margin: 20px 0;
             display: block;
         }
-
-        /* Estilo para la etapa */
         .etapa {
-            background-color: #A6D1E6;
+            background-color:  #007bff;
             color: white;
             padding: 5px 10px;
             border-radius: 20px;
@@ -96,30 +77,44 @@ try {
             display: inline-block;
             margin-top: 10px;
         }
-
+        small {
+            display: block;
+            margin-top: 10px;
+            color: #A6D1E6;
+            text-align: right;
+            font-size: 0.9em;
+        }
+        a {
+            text-decoration: none;
+            color:#007bff;
+            font-size: 1.1em;
+        }
+        a:hover {
+            color:rgb(43, 68, 95);
+            text-decoration: none;
+        }
     </style>
 </head>
 <body>
-
-<ul>
-    <?php foreach ($publicaciones as $publicacion): ?>
-        <li>
-            <h3><?= htmlspecialchars($publicacion['titulo']) ?></h3>
-            <p><?= nl2br(htmlspecialchars($publicacion['descripcion'])) ?></p>
-            
-            <!-- Mostrar imagen -->
-            <?php if (!empty($publicacion['imagen'])): ?>
-                <img src="<?= htmlspecialchars($publicacion['imagen']) ?>" alt="Imagen del proyecto" class="imagen-publicacion">
-            <?php endif; ?>
-            
-            <!-- Mostrar etapa -->
-            <div class="etapa"><?= htmlspecialchars($publicacion['etapa']) ?></div>
-            
-            <small><?= $publicacion['fecha_publicacion'] ?></small>
-            
-        </li>
-    <?php endforeach; ?>
-</ul>
-
+    <?php if ($publicacion): ?>
+        <h2><?= htmlspecialchars($publicacion['titulo']) ?></h2>
+        <div class="etapa">Etapa: <?= htmlspecialchars($publicacion['etapa']) ?></div>
+        <small>Fecha de inicio: <?= htmlspecialchars($publicacion['fecha_publicacion']) ?></small>
+        <ul>
+            <?php foreach ($proyectos as $proyecto): ?>
+                <li>
+                    <h3><?= htmlspecialchars($proyecto['titulo']) ?></h3>
+                    <p><?= nl2br(htmlspecialchars($proyecto['descripcion'])) ?></p>
+                    <?php if (!empty($proyecto['imagen'])): ?>
+                        <img src="<?= htmlspecialchars($proyecto['imagen']) ?>" alt="Imagen del proyecto" class="imagen-publicacion">
+                    <?php endif; ?>
+                    
+                    <small>Fecha de publicación: <?= htmlspecialchars($proyecto['fecha_publicacion']) ?></small>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+    <?php else: ?>
+        <h2>No se encontró información sobre el proyecto.</h2>
+    <?php endif; ?>
 </body>
 </html>
