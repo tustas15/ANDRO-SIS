@@ -1,344 +1,277 @@
 <?php
 require '../conection/conexion.php';
 
-// Obtener el número de página actual
+// Configuración de paginación
 $pagina = isset($_GET['pagina']) ? (int)$_GET['pagina'] : 1;
-$proyectosPorPagina = 5;
-$offset = ($pagina - 1) * $proyectosPorPagina;
+$publicacionesPorPagina = 5;
+$offset = ($pagina - 1) * $publicacionesPorPagina;
 
-// Obtener los proyectos de la base de datos
-// Obtener los proyectos de la base de datos con el nombre del contratista
+// Consulta para obtener publicaciones con datos del proyecto
 $stmt = $conn->prepare("
-    SELECT p.*, u.nombre as nombre_contratista, u.apellido as apellido_contratista 
-    FROM Proyectos p 
-    INNER JOIN Usuarios u ON p.id_contratista = u.id_usuario 
+    SELECT 
+        p.titulo as proyecto_titulo,
+        pub.*,
+        u.nombre as contratista_nombre,
+        u.apellido as contratista_apellido
+    FROM publicacion pub
+    INNER JOIN proyecto p ON pub.id_proyectos = p.id_proyectos
+    INNER JOIN usuarios u ON p.id_contratista = u.id_usuario
+    ORDER BY pub.fecha_publicacion DESC
     LIMIT :limit OFFSET :offset
 ");
-$stmt->bindParam(':limit', $proyectosPorPagina, PDO::PARAM_INT);
-$stmt->bindParam(':offset', $offset, PDO::PARAM_INT);
+$stmt->bindValue(':limit', $publicacionesPorPagina, PDO::PARAM_INT);
+$stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 $stmt->execute();
-$proyectos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$publicaciones = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Obtener el total de proyectos para la paginación
-$totalProyectos = $conn->query("SELECT COUNT(*) FROM Proyectos")->fetchColumn();
-$totalPaginas = ceil($totalProyectos / $proyectosPorPagina);
-
-// Función para obtener comentarios
-function obtenerComentarios($id_proyecto, $conn) {
+// Funciones auxiliares
+function obtenerComentariosPublicacion($id_publicacion, $conn) {
     $stmt = $conn->prepare("
         SELECT c.*, u.nombre, u.apellido 
-        FROM Comentarios c 
-        INNER JOIN Usuarios u ON c.id_usuario = u.id_usuario 
-        WHERE c.id_proyecto = :id_proyecto 
+        FROM comentarios c
+        INNER JOIN usuarios u ON c.id_usuario = u.id_usuario
+        WHERE c.id_publicacion = :id_publicacion
         ORDER BY c.fecha DESC
     ");
-    $stmt->bindParam(':id_proyecto', $id_proyecto);
-    $stmt->execute();
+    $stmt->execute([':id_publicacion' => $id_publicacion]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-// Función para obtener el total de "me gusta" de un proyecto
-function obtenerTotalMegustas($id_proyecto, $conn) {
-    $stmt = $conn->prepare("SELECT COUNT(*) as total FROM MeGusta WHERE id_proyecto = :id_proyecto");
-    $stmt->bindParam(':id_proyecto', $id_proyecto);
-    $stmt->execute();
-    return $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+function obtenerTotalMegustasPublicacion($id_publicacion, $conn) {
+    $stmt = $conn->prepare("SELECT COUNT(*) as total FROM megusta WHERE id_publicacion = :id_publicacion");
+    $stmt->execute([':id_publicacion' => $id_publicacion]);
+    return $stmt->fetchColumn();
 }
 
-// Función para verificar si el usuario actual dio "me gusta"
-function usuarioDioMegusta($id_usuario, $id_proyecto, $conn) {
-    $stmt = $conn->prepare("SELECT * FROM MeGusta WHERE id_usuario = :id_usuario AND id_proyecto = :id_proyecto");
-    $stmt->bindParam(':id_usuario', $id_usuario);
-    $stmt->bindParam(':id_proyecto', $id_proyecto);
-    $stmt->execute();
-    return $stmt->fetch(PDO::FETCH_ASSOC) ? true : false;
+function usuarioDioMegustaPublicacion($id_usuario, $id_publicacion, $conn) {
+    if (!$id_usuario) return false;
+    $stmt = $conn->prepare("
+        SELECT 1 FROM megusta 
+        WHERE id_usuario = :id_usuario AND id_publicacion = :id_publicacion
+    ");
+    $stmt->execute([
+        ':id_usuario' => $id_usuario,
+        ':id_publicacion' => $id_publicacion
+    ]);
+    return (bool)$stmt->fetchColumn();
 }
+
+// Calcular total de páginas
+$totalPublicaciones = $conn->query("SELECT COUNT(*) FROM publicacion")->fetchColumn();
+$totalPaginas = ceil($totalPublicaciones / $publicacionesPorPagina);
 ?>
 
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Proyectos</title>
-    <!-- Incluir FontAwesome para los íconos -->
+    <title>Publicaciones de Proyectos</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        .proyecto {
-            border: 1px solid #ccc;
-            padding: 10px;
+        .publicacion-container {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin: 20px 0;
+            padding: 20px;
+            background: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .proyecto-titulo {
+            color: #2c3e50;
+            font-size: 1.5em;
             margin-bottom: 10px;
         }
-        .comentarios {
-            display: none;
-            margin-top: 10px;
+        .publicacion-titulo {
+            color: #34495e;
+            font-size: 1.2em;
+            margin: 15px 0 10px;
         }
-        .botones-final {
-    margin-top: 10px;
-    display: flex;
-    gap: 10px;
-}
-
-.form-comentario textarea {
-    width: 100%;
-    margin: 10px 0;
-    min-height: 80px;
-}
-        .btn-megusta.activo {
-            background-color: #007bff;
-            color: white;
+        .publicacion-imagen {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+            margin: 10px 0;
         }
-        .error-message {
-            color: red;
-            display: none;
-            margin-top: 5px;
+        .interacciones {
+            margin-top: 15px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
         }
-        .acciones-comentario {
-            margin-left: 10px;
-        }
-        .acciones-comentario i {
+        .btn-interaccion {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
             cursor: pointer;
-            margin-right: 5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
-        .editar-comentario {
-            display: none;
-            margin-top: 10px;
+        .paginacion {
+            text-align: center;
+            margin: 20px 0;
         }
     </style>
 </head>
 <body>
-    <?php foreach ($proyectos as $proyecto): ?>
-        <div class="proyecto">
-            <h2><?php echo htmlspecialchars($proyecto['titulo']); ?></h2>
-            <h3>Contratista: <a href="index.php?view=perfil_contratista&id=<?php echo $proyecto['id_contratista']; ?>"><?php echo htmlspecialchars($proyecto['nombre_contratista']) . ' ' . htmlspecialchars($proyecto['apellido_contratista']); ?></a></h3>
-            <p><?php echo htmlspecialchars($proyecto['descripcion']); ?></p>
-            <img src="<?php echo htmlspecialchars($proyecto['imagen']); ?>" alt="Imagen del proyecto" width="200">
-            <p>Etapa: <?php echo htmlspecialchars($proyecto['etapa']); ?></p>
-            <p>Fecha de publicación: <?php echo htmlspecialchars($proyecto['fecha_publicacion']); ?></p>
+    <?php foreach ($publicaciones as $publicacion): ?>
+        <div class="publicacion-container">
+            <!-- Título del Proyecto -->
+            <h2 class="proyecto-titulo">
+                <?= htmlspecialchars($publicacion['proyecto_titulo']) ?>
+            </h2>
+            
+            <!-- Título de la Publicación -->
+            <h3 class="publicacion-titulo">
+                <?= htmlspecialchars($publicacion['titulo']) ?>
+            </h3>
+            
+            <!-- Imagen de la Publicación -->
+            <?php if (!empty($publicacion['imagen'])): ?>
+                <img src="uploads/<?= htmlspecialchars($publicacion['imagen']) ?>" 
+                     class="publicacion-imagen"
+                     alt="Imagen de la publicación">
+            <?php endif; ?>
+            
+            <!-- Descripción de la Publicación -->
+            <p class="publicacion-descripcion">
+                <?= nl2br(htmlspecialchars($publicacion['descripcion'])) ?>
+            </p>
+            
+            <!-- Fecha de Publicación -->
+            <small><?= date('d/m/Y H:i', strtotime($publicacion['fecha_publicacion'])) ?></small>
 
-            <!-- Botón para dar o quitar "me gusta" -->
-            <form class="form-megusta" data-proyecto-id="<?php echo $proyecto['id_proyecto']; ?>">
-        <button type="submit" class="btn-megusta <?php echo (isset($_SESSION['id_usuario']) && usuarioDioMegusta($_SESSION['id_usuario'], $proyecto['id_proyecto'], $conn)) ? 'activo' : ''; ?>">
-            <span class="total-megusta"><?php echo obtenerTotalMegustas($proyecto['id_proyecto'], $conn); ?></span> | Me gusta
-        </button>
-        <div class="error-message"></div>
-    </form>
+            <!-- Interacciones -->
+            <div class="interacciones">
+                <!-- Botón Me Gusta -->
+                <form class="form-megusta" data-publicacion-id="<?= $publicacion['id_publicacion'] ?>">
+                    <button type="submit" class="btn-interaccion <?= (isset($_SESSION['id_usuario'])) && usuarioDioMegustaPublicacion($_SESSION['id_usuario'], $publicacion['id_publicacion'], $conn) ? 'activo' : '' ?>">
+                        <i class="fas fa-thumbs-up"></i>
+                        <span class="total-megusta">
+                            <?= obtenerTotalMegustasPublicacion($publicacion['id_publicacion'], $conn) ?>
+                        </span>
+                    </button>
+                </form>
 
-            <!-- Formulario para comentar -->
-            <form class="form-comentario" data-proyecto-id="<?php echo $proyecto['id_proyecto']; ?>">
-        <textarea name="comentario" placeholder="Escribe tu comentario..." required></textarea>
-        
-        <!-- Botones ABAJO -->
-        <div class="botones-final">
-            <button type="submit">Comentar</button>
-            <button type="button" onclick="mostrarComentarios(<?php echo $proyecto['id_proyecto']; ?>)">Comentarios</button>
-        </div>
-        <div class="error-message"></div>
-    </form>
+                <!-- Botón Comentarios -->
+                <button class="btn-interaccion" onclick="toggleComentarios(<?= $publicacion['id_publicacion'] ?>)">
+                    <i class="fas fa-comment"></i> Comentarios
+                </button>
+            </div>
 
-            <!-- Sección de comentarios -->
-            <div id="comentarios-<?php echo $proyecto['id_proyecto']; ?>" class="comentarios">
-                <?php $comentarios = obtenerComentarios($proyecto['id_proyecto'], $conn); ?>
+            <!-- Sección de Comentarios -->
+            <div id="comentarios-<?= $publicacion['id_publicacion'] ?>" style="display: none;">
+                <?php $comentarios = obtenerComentariosPublicacion($publicacion['id_publicacion'], $conn) ?>
                 <?php foreach ($comentarios as $comentario): ?>
-                    <p>
-                        <strong><?php echo htmlspecialchars($comentario['nombre'] . ' ' . $comentario['apellido']); ?>:</strong> 
-                        <span id="comentario-texto-<?php echo $comentario['id_comentario']; ?>"><?php echo htmlspecialchars($comentario['comentario']); ?></span>
-                        <?php if (isset($_SESSION['id_usuario']) && $_SESSION['id_usuario'] == $comentario['id_usuario']): ?>
-                            <span class="acciones-comentario">
-                                <i class="fas fa-pencil-alt" onclick="mostrarEditarComentario(<?php echo $comentario['id_comentario']; ?>)"></i>
-                                <i class="fas fa-trash" onclick="eliminarComentario(<?php echo $comentario['id_comentario']; ?>)"></i>
-                            </span>
-                        <?php endif; ?>
-                    </p>
-                    <!-- Formulario para editar comentario -->
-                    <div id="editar-comentario-<?php echo $comentario['id_comentario']; ?>" class="editar-comentario">
-                        <textarea id="editar-texto-<?php echo $comentario['id_comentario']; ?>"><?php echo htmlspecialchars($comentario['comentario']); ?></textarea>
-                        <button onclick="guardarEdicionComentario(<?php echo $comentario['id_comentario']; ?>)">Guardar</button>
-                        <button onclick="cancelarEdicionComentario(<?php echo $comentario['id_comentario']; ?>)">Cancelar</button>
+                    <div class="comentario">
+                        <strong><?= htmlspecialchars($comentario['nombre'] . ' ' . htmlspecialchars($comentario['apellido'])) ?></strong>
+                        <p><?= htmlspecialchars($comentario['comentario']) ?></p>
+                        <small><?= date('d/m/Y H:i', strtotime($comentario['fecha'])) ?></small>
                     </div>
                 <?php endforeach; ?>
+                
+                <!-- Formulario para nuevo comentario -->
+                <form class="form-comentario" data-publicacion-id="<?= $publicacion['id_publicacion'] ?>">
+                    <textarea name="comentario" placeholder="Escribe tu comentario..."></textarea>
+                    <button type="submit">Enviar</button>
+                </form>
             </div>
         </div>
     <?php endforeach; ?>
 
     <!-- Paginación -->
-    <?php if ($totalPaginas > 1): ?>
-        <div>
-            <?php if ($pagina > 1): ?>
-                <a href="?pagina=<?php echo $pagina - 1; ?>">Anterior</a>
-            <?php endif; ?>
-            <?php if ($pagina < $totalPaginas): ?>
-                <a href="?pagina=<?php echo $pagina + 1; ?>">Siguiente</a>
-            <?php endif; ?>
-        </div>
-    <?php endif; ?>
+    <div class="paginacion">
+        <?php if ($pagina > 1): ?>
+            <a href="?pagina=<?= $pagina - 1 ?>">Anterior</a>
+        <?php endif; ?>
+        
+        <?php for ($i = 1; $i <= $totalPaginas; $i++): ?>
+            <a href="?pagina=<?= $i ?>" <?= $i == $pagina ? 'class="activa"' : '' ?>><?= $i ?></a>
+        <?php endfor; ?>
+        
+        <?php if ($pagina < $totalPaginas): ?>
+            <a href="?pagina=<?= $pagina + 1 ?>">Siguiente</a>
+        <?php endif; ?>
+    </div>
 
     <script>
-        function mostrarComentarios(id_proyecto) {
-            var comentarios = document.getElementById('comentarios-' + id_proyecto);
-            if (comentarios.style.display === 'none' || comentarios.style.display === '') {
-                comentarios.style.display = 'block';
-            } else {
-                comentarios.style.display = 'none';
-            }
+        // Función para mostrar/ocultar comentarios
+        function toggleComentarios(id) {
+            const div = document.getElementById(`comentarios-${id}`);
+            div.style.display = div.style.display === 'none' ? 'block' : 'none';
         }
 
-        function mostrarEditarComentario(id_comentario) {
-            document.getElementById('editar-comentario-' + id_comentario).style.display = 'block';
-        }
-
-        function cancelarEdicionComentario(id_comentario) {
-            document.getElementById('editar-comentario-' + id_comentario).style.display = 'none';
-        }
-
-        function guardarEdicionComentario(id_comentario) {
-            const nuevoComentario = document.getElementById('editar-texto-' + id_comentario).value;
-            fetch('acciones.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: `action=editar_comentario&id_comentario=${id_comentario}&comentario=${encodeURIComponent(nuevoComentario)}`
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    location.reload(); // Recargar la página para ver los cambios
-                } else {
-                    alert(data.message || 'Error al editar el comentario');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error de conexión');
-            });
-        }
-
-        function eliminarComentario(id_comentario) {
-    fetch('acciones.php', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: `action=eliminar_comentario&id_comentario=${id_comentario}`
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            location.reload(); // Recargar la página para ver los cambios
-        } else {
-            alert(data.message || 'Error al eliminar el comentario');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Error de conexión');
-    });
-}
-
-        document.addEventListener('DOMContentLoaded', function() {
-            // Manejar me gusta
-            document.querySelectorAll('.form-megusta').forEach(form => {
-                form.addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    const proyectoId = this.dataset.proyectoId;
-                    const botonMegusta = this.querySelector('.btn-megusta');
-                    const errorDiv = this.querySelector('.error-message');
-                    
-                    fetch('acciones.php', {
+        // Manejar Me Gusta
+        document.querySelectorAll('.form-megusta').forEach(form => {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const publicacionId = form.dataset.publicacionId;
+                
+                try {
+                    const response = await fetch('acciones.php', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                        },
-                        body: `action=megusta&id_proyecto=${proyectoId}`
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            const totalSpan = botonMegusta.querySelector('.total-megusta');
-                            totalSpan.textContent = data.total_megusta;
-                            
-                            if (data.dio_megusta) {
-                                botonMegusta.classList.add('activo');
-                            } else {
-                                botonMegusta.classList.remove('activo');
-                            }
-                            errorDiv.style.display = 'none';
-                        } else {
-                            errorDiv.textContent = data.message || 'Error al procesar la acción';
-                            errorDiv.style.display = 'block';
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        errorDiv.textContent = 'Error de conexión';
-                        errorDiv.style.display = 'block';
+                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                        body: `action=megusta&id_publicacion=${publicacionId}`
                     });
-                });
-            });
-            
-            // Manejar comentarios
-            // En la sección de manejar comentarios, actualizar la lógica para mostrar los íconos de editar y eliminar
-document.querySelectorAll('.form-comentario').forEach(form => {
-    form.addEventListener('submit', function(e) {
-        e.preventDefault();
-        const proyectoId = this.dataset.proyectoId;
-        const comentarioText = this.querySelector('textarea').value;
-        const errorDiv = this.querySelector('.error-message');
-        
-        fetch('acciones.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: `action=comentar&id_proyecto=${proyectoId}&comentario=${encodeURIComponent(comentarioText)}`
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Actualizar la lista de comentarios
-                const comentariosDiv = document.getElementById(`comentarios-${proyectoId}`);
-                comentariosDiv.innerHTML = data.comentarios.map(comentario => {
-                    let acciones = '';
-                    if (comentario.pertenece_al_usuario) {
-                        acciones = `
-                            <span class="acciones-comentario">
-                                <i class="fas fa-pencil-alt" onclick="mostrarEditarComentario(${comentario.id_comentario})"></i>
-                                <i class="fas fa-trash" onclick="eliminarComentario(${comentario.id_comentario})"></i>
-                            </span>
-                        `;
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        const boton = form.querySelector('button');
+                        const contador = form.querySelector('.total-megusta');
+                        
+                        contador.textContent = data.total;
+                        boton.classList.toggle('activo', data.dio_megusta);
                     }
-                    return `
-                        <p>
-                            <strong>${comentario.nombre} ${comentario.apellido}:</strong> 
-                            <span id="comentario-texto-${comentario.id_comentario}">${comentario.comentario}</span>
-                            ${acciones}
-                        </p>
-                        <div id="editar-comentario-${comentario.id_comentario}" class="editar-comentario">
-                            <textarea id="editar-texto-${comentario.id_comentario}">${comentario.comentario}</textarea>
-                            <button onclick="guardarEdicionComentario(${comentario.id_comentario})">Guardar</button>
-                            <button onclick="cancelarEdicionComentario(${comentario.id_comentario})">Cancelar</button>
-                        </div>
-                    `;
-                }).join('');
-                
-                // Mostrar los comentarios si están ocultos
-                comentariosDiv.style.display = 'block';
-                
-                // Limpiar el textarea y el mensaje de error
-                this.querySelector('textarea').value = '';
-                errorDiv.style.display = 'none';
-            } else {
-                errorDiv.textContent = data.message || 'Error al procesar el comentario';
-                errorDiv.style.display = 'block';
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            errorDiv.textContent = 'Error de conexión';
-            errorDiv.style.display = 'block';
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            });
         });
+
+        // Manejar Comentarios
+        document.querySelectorAll('.form-comentario').forEach(form => {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const publicacionId = form.dataset.publicacionId;
+                const texto = form.querySelector('textarea').value;
+                
+                // proyectos.js (sección de comentarios)
+try {
+    const response = await fetch('acciones.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: `action=comentar&id_publicacion=${publicacionId}&comentario=${encodeURIComponent(texto)}`
     });
-});
+    
+    const data = await response.json();
+    
+    if (data.success) {
+        const comentariosDiv = document.getElementById(`comentarios-${publicacionId}`);
+        // Limpiar comentarios existentes
+        comentariosDiv.querySelectorAll('.comentario').forEach(c => c.remove());
+        // Agregar nuevos comentarios
+        data.comentarios.forEach(comentario => {
+            const div = document.createElement('div');
+            div.className = 'comentario';
+            div.innerHTML = `
+                <strong>${comentario.nombre} ${comentario.apellido}</strong>
+                <p>${comentario.comentario}</p>
+                <small>${new Date(comentario.fecha).toLocaleString()}</small>
+                ${comentario.pertenece_al_usuario ? `
+                <button onclick="editarComentario(${comentario.id_comentario})">Editar</button>
+                <button onclick="eliminarComentario(${comentario.id_comentario})">Eliminar</button>
+                ` : ''}
+            `;
+            comentariosDiv.insertBefore(div, form);
+        });
+        // Limpiar textarea
+        form.querySelector('textarea').value = '';
+    }
+} catch (error) {
+    console.error('Error:', error);
+}
+            });
         });
     </script>
 </body>

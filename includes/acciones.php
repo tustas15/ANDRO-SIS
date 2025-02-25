@@ -18,33 +18,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Procesar me gusta
     if (isset($_POST['action']) && $_POST['action'] === 'megusta') {
         $id_usuario = $_SESSION['id_usuario'];
-        $id_proyecto = $_POST['id_proyecto'];
+        $id_publicacion = $_POST['id_publicacion'];
         
-        $stmt = $conn->prepare("SELECT * FROM MeGusta WHERE id_usuario = :id_usuario AND id_proyecto = :id_proyecto");
+        $stmt = $conn->prepare("SELECT * FROM MeGusta WHERE id_usuario = :id_usuario AND id_publicacion = :id_publicacion");
         $stmt->bindParam(':id_usuario', $id_usuario);
-        $stmt->bindParam(':id_proyecto', $id_proyecto);
+        $stmt->bindParam(':id_publicacion', $id_publicacion);
         $stmt->execute();
         $megusta = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if ($megusta) {
-            $stmt = $conn->prepare("DELETE FROM MeGusta WHERE id_usuario = :id_usuario AND id_proyecto = :id_proyecto");
+            $stmt = $conn->prepare("DELETE FROM MeGusta WHERE id_usuario = :id_usuario AND id_publicacion = :id_publicacion");
         } else {
-            $stmt = $conn->prepare("INSERT INTO MeGusta (id_usuario, id_proyecto) VALUES (:id_usuario, :id_proyecto)");
+            $stmt = $conn->prepare("INSERT INTO MeGusta (id_usuario, id_publicacion) VALUES (:id_usuario, :id_publicacion)");
         }
         
         $stmt->bindParam(':id_usuario', $id_usuario);
-        $stmt->bindParam(':id_proyecto', $id_proyecto);
+        $stmt->bindParam(':id_publicacion', $id_publicacion);
         
         if ($stmt->execute()) {
-            // Obtener el nuevo total de me gusta
-            $stmt = $conn->prepare("SELECT COUNT(*) as total FROM MeGusta WHERE id_proyecto = :id_proyecto");
-            $stmt->bindParam(':id_proyecto', $id_proyecto);
+            $stmt = $conn->prepare("SELECT COUNT(*) as total FROM megusta WHERE id_publicacion = :id_publicacion");
+            $stmt->bindParam(':id_publicacion', $id_publicacion);
             $stmt->execute();
             $total = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
             
             $response = [
                 'success' => true,
-                'total_megusta' => $total,
+                'total' => $total, // Cambiado de 'total_megusta' a 'total'
                 'dio_megusta' => !$megusta
             ];
         } else {
@@ -56,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // En la sección de procesar comentarios, modificar la respuesta para incluir si el comentario pertenece al usuario logueado
 if (isset($_POST['action']) && $_POST['action'] === 'comentar') {
     $id_usuario = $_SESSION['id_usuario'];
-    $id_proyecto = $_POST['id_proyecto'];
+    $id_publicacion = $_POST['id_publicacion'];
     $comentario = trim($_POST['comentario']);
     
     if (empty($comentario)) {
@@ -65,9 +64,9 @@ if (isset($_POST['action']) && $_POST['action'] === 'comentar') {
         exit;
     }
     
-    $stmt = $conn->prepare("INSERT INTO Comentarios (id_usuario, id_proyecto, comentario) VALUES (:id_usuario, :id_proyecto, :comentario)");
+    $stmt = $conn->prepare("INSERT INTO Comentarios (id_usuario, id_publicacion, comentario) VALUES (:id_usuario, :id_publicacion, :comentario)");
     $stmt->bindParam(':id_usuario', $id_usuario);
-    $stmt->bindParam(':id_proyecto', $id_proyecto);
+    $stmt->bindParam(':id_publicacion', $id_publicacion);
     $stmt->bindParam(':comentario', $comentario);
     
     if ($stmt->execute()) {
@@ -75,9 +74,9 @@ if (isset($_POST['action']) && $_POST['action'] === 'comentar') {
         $stmt = $conn->prepare("SELECT c.*, u.nombre, u.apellido 
         FROM Comentarios c 
         INNER JOIN Usuarios u ON c.id_usuario = u.id_usuario 
-        WHERE c.id_proyecto = :id_proyecto 
+        WHERE c.id_publicacion = :id_publicacion 
         ORDER BY c.fecha DESC");
-        $stmt->bindParam(':id_proyecto', $id_proyecto);
+        $stmt->bindParam(':id_publicacion', $id_publicacion);
         $stmt->execute();
         $comentarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
