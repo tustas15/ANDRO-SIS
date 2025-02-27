@@ -87,7 +87,6 @@ if (session_status() === PHP_SESSION_NONE) {
     }
 ?>" class="title">ANDRO - SIS</a>
     <div class="icons">
-    <i class="fas fa-bell" aria-label="Notificaciones"></i>
     <div class="profile">
         <i class="fas fa-user-circle" id="user-icon" aria-label="Perfil de usuario"></i>
         <div class="nombreperfil">
