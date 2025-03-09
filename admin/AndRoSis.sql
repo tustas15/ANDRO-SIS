@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 05-02-2025 a las 02:17:52
+-- Tiempo de generación: 27-02-2025 a las 02:53:46
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -24,13 +24,35 @@ SET time_zone = "+00:00";
 -- --------------------------------------------------------
 
 --
+-- Estructura de tabla para la tabla `categorias`
+--
+
+CREATE TABLE `categorias` (
+  `id_categoria` int(11) NOT NULL,
+  `nombre` varchar(255) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `categorias`
+--
+
+INSERT INTO `categorias` (`id_categoria`, `nombre`) VALUES
+(1, 'Infraestructura y Obras Públicas'),
+(2, 'Desarrollo Social y Servicios Comunitarios'),
+(3, 'Desarrollo Económico y Productivo'),
+(4, 'Gestión Ambiental y Sostenibilidad'),
+(5, 'Seguridad y Gestión de Riesgos');
+
+-- --------------------------------------------------------
+
+--
 -- Estructura de tabla para la tabla `comentarios`
 --
 
 CREATE TABLE `comentarios` (
   `id_comentario` int(11) NOT NULL,
   `id_usuario` int(11) NOT NULL,
-  `id_proyecto` int(11) NOT NULL,
+  `id_publicacion` int(11) NOT NULL,
   `comentario` text NOT NULL,
   `fecha` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -39,10 +61,8 @@ CREATE TABLE `comentarios` (
 -- Volcado de datos para la tabla `comentarios`
 --
 
-INSERT INTO `comentarios` (`id_comentario`, `id_usuario`, `id_proyecto`, `comentario`, `fecha`) VALUES
-(1, 3, 1, 'Excelente proyecto, espero verlo terminado.', '2024-12-15 18:24:20'),
-(2, 3, 2, 'Muy interesante el diseño de este edificio.', '2024-12-15 18:24:20'),
-(66, 1, 1, 'Genial!!!', '2025-01-28 19:30:51');
+INSERT INTO `comentarios` (`id_comentario`, `id_usuario`, `id_publicacion`, `comentario`, `fecha`) VALUES
+(72, 3, 1, 'Hola estas bien', '2025-02-25 01:18:48');
 
 -- --------------------------------------------------------
 
@@ -73,7 +93,7 @@ INSERT INTO `conversaciones` (`id_conversacion`, `id_admin`, `id_contratista`, `
 CREATE TABLE `megusta` (
   `id_megusta` int(11) NOT NULL,
   `id_usuario` int(11) NOT NULL,
-  `id_proyecto` int(11) NOT NULL,
+  `id_publicacion` int(11) NOT NULL,
   `fecha` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -81,10 +101,9 @@ CREATE TABLE `megusta` (
 -- Volcado de datos para la tabla `megusta`
 --
 
-INSERT INTO `megusta` (`id_megusta`, `id_usuario`, `id_proyecto`, `fecha`) VALUES
-(1, 3, 1, '2024-12-15 18:24:20'),
-(2, 3, 2, '2024-12-15 18:24:20'),
-(307, 1, 2, '2025-01-28 20:14:08');
+INSERT INTO `megusta` (`id_megusta`, `id_usuario`, `id_publicacion`, `fecha`) VALUES
+(351, 3, 2, '2025-02-25 05:28:58'),
+(357, 3, 1, '2025-02-26 20:30:52');
 
 -- --------------------------------------------------------
 
@@ -111,48 +130,51 @@ INSERT INTO `mensajes` (`id_mensaje`, `id_conversacion`, `id_remitente`, `mensaj
 -- --------------------------------------------------------
 
 --
--- Estructura de tabla para la tabla `notificaciones`
+-- Estructura de tabla para la tabla `proyecto`
 --
 
-CREATE TABLE `notificaciones` (
-  `id_notificacion` int(11) NOT NULL,
-  `id_usuario` int(11) NOT NULL,
-  `contenido` text NOT NULL,
-  `leido` tinyint(1) DEFAULT 0,
-  `fecha` timestamp NOT NULL DEFAULT current_timestamp()
+CREATE TABLE `proyecto` (
+  `id_proyectos` int(11) NOT NULL,
+  `id_contratista` int(11) NOT NULL,
+  `titulo` varchar(255) NOT NULL,
+  `fecha_publicacion` timestamp NOT NULL DEFAULT current_timestamp(),
+  `etapa` enum('planificacion','ejecucion','finalizado') NOT NULL,
+  `id_categoria` int(11) NOT NULL,
+  `presupuesto` decimal(15,2) NOT NULL DEFAULT 0.00
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Volcado de datos para la tabla `notificaciones`
+-- Volcado de datos para la tabla `proyecto`
 --
 
-INSERT INTO `notificaciones` (`id_notificacion`, `id_usuario`, `contenido`, `leido`, `fecha`) VALUES
-(1, 3, 'El contratista Juan ha publicado un nuevo proyecto.', 0, '2024-12-15 18:24:20'),
-(2, 3, 'Tu comentario ha recibido una respuesta.', 0, '2024-12-15 18:24:20');
+INSERT INTO `proyecto` (`id_proyectos`, `id_contratista`, `titulo`, `fecha_publicacion`, `etapa`, `id_categoria`, `presupuesto`) VALUES
+(1, 2, 'Construcción de Puente ', '2024-12-15 20:52:22', 'ejecucion', 3, 500000.00),
+(2, 2, 'Edificio de Oficinas', '2024-12-27 20:52:22', 'ejecucion', 1, 90000.00),
+(3, 2, 'Parque Urbano', '2025-01-10 20:40:10', 'ejecucion', 2, 100000.00);
 
 -- --------------------------------------------------------
 
 --
--- Estructura de tabla para la tabla `proyectos`
+-- Estructura de tabla para la tabla `publicacion`
 --
 
-CREATE TABLE `proyectos` (
-  `id_proyecto` int(11) NOT NULL,
-  `id_contratista` int(11) NOT NULL,
+CREATE TABLE `publicacion` (
+  `id_publicacion` int(11) NOT NULL,
+  `id_proyectos` int(11) NOT NULL,
   `titulo` varchar(255) NOT NULL,
   `descripcion` text DEFAULT NULL,
   `imagen` varchar(255) DEFAULT NULL,
-  `etapa` enum('planificacion','ejecucion','finalizado') NOT NULL,
-  `fecha_publicacion` timestamp NOT NULL DEFAULT current_timestamp()
+  `fecha_publicacion` timestamp NOT NULL DEFAULT current_timestamp(),
+  `peso` decimal(5,2) NOT NULL DEFAULT 0.00
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Volcado de datos para la tabla `proyectos`
+-- Volcado de datos para la tabla `publicacion`
 --
 
-INSERT INTO `proyectos` (`id_proyecto`, `id_contratista`, `titulo`, `descripcion`, `imagen`, `etapa`, `fecha_publicacion`) VALUES
-(1, 2, 'Construcción de Puente', 'Proyecto de construcción de un puente vehicular.', 'puente_imagen.jpg', 'planificacion', '2024-12-15 18:24:20'),
-(2, 2, 'Edificio de Oficinas', 'Diseño y construcción de oficinas corporativas.', 'edificio_imagen.jpg', 'ejecucion', '2024-12-15 18:24:20');
+INSERT INTO `publicacion` (`id_publicacion`, `id_proyectos`, `titulo`, `descripcion`, `imagen`, `fecha_publicacion`, `peso`) VALUES
+(1, 1, 'paso 1', 'Construccion del puente  avanzando', 'puente_imagen.jpg', '2025-02-24 22:49:35', 50.00),
+(2, 1, 'Paso 2', 'Sigue avanzando el puente', 'Puente_imagen.jpg', '2025-02-24 22:49:35', 30.00);
 
 -- --------------------------------------------------------
 
@@ -207,12 +229,18 @@ INSERT INTO `usuarios` (`id_usuario`, `nombre`, `apellido`, `correo`, `contrasen
 --
 
 --
+-- Indices de la tabla `categorias`
+--
+ALTER TABLE `categorias`
+  ADD PRIMARY KEY (`id_categoria`);
+
+--
 -- Indices de la tabla `comentarios`
 --
 ALTER TABLE `comentarios`
   ADD PRIMARY KEY (`id_comentario`),
   ADD KEY `id_usuario` (`id_usuario`),
-  ADD KEY `id_proyecto` (`id_proyecto`);
+  ADD KEY `id_publicacion` (`id_publicacion`) USING BTREE;
 
 --
 -- Indices de la tabla `conversaciones`
@@ -227,8 +255,8 @@ ALTER TABLE `conversaciones`
 --
 ALTER TABLE `megusta`
   ADD PRIMARY KEY (`id_megusta`),
-  ADD UNIQUE KEY `id_usuario` (`id_usuario`,`id_proyecto`),
-  ADD KEY `id_proyecto` (`id_proyecto`);
+  ADD UNIQUE KEY `id_usuario` (`id_usuario`,`id_publicacion`),
+  ADD KEY `id_publicacion` (`id_publicacion`) USING BTREE;
 
 --
 -- Indices de la tabla `mensajes`
@@ -239,18 +267,19 @@ ALTER TABLE `mensajes`
   ADD KEY `id_remitente` (`id_remitente`);
 
 --
--- Indices de la tabla `notificaciones`
+-- Indices de la tabla `proyecto`
 --
-ALTER TABLE `notificaciones`
-  ADD PRIMARY KEY (`id_notificacion`),
-  ADD KEY `id_usuario` (`id_usuario`);
+ALTER TABLE `proyecto`
+  ADD PRIMARY KEY (`id_proyectos`),
+  ADD KEY `id_contratista` (`id_contratista`),
+  ADD KEY `id_categoria` (`id_categoria`);
 
 --
--- Indices de la tabla `proyectos`
+-- Indices de la tabla `publicacion`
 --
-ALTER TABLE `proyectos`
-  ADD PRIMARY KEY (`id_proyecto`),
-  ADD KEY `id_contratista` (`id_contratista`);
+ALTER TABLE `publicacion`
+  ADD PRIMARY KEY (`id_publicacion`),
+  ADD KEY `id_proyectos` (`id_proyectos`) USING BTREE;
 
 --
 -- Indices de la tabla `recuperacioncontrasenas`
@@ -271,10 +300,16 @@ ALTER TABLE `usuarios`
 --
 
 --
+-- AUTO_INCREMENT de la tabla `categorias`
+--
+ALTER TABLE `categorias`
+  MODIFY `id_categoria` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
 -- AUTO_INCREMENT de la tabla `comentarios`
 --
 ALTER TABLE `comentarios`
-  MODIFY `id_comentario` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=72;
+  MODIFY `id_comentario` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=78;
 
 --
 -- AUTO_INCREMENT de la tabla `conversaciones`
@@ -286,7 +321,7 @@ ALTER TABLE `conversaciones`
 -- AUTO_INCREMENT de la tabla `megusta`
 --
 ALTER TABLE `megusta`
-  MODIFY `id_megusta` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=323;
+  MODIFY `id_megusta` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=360;
 
 --
 -- AUTO_INCREMENT de la tabla `mensajes`
@@ -295,16 +330,16 @@ ALTER TABLE `mensajes`
   MODIFY `id_mensaje` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
--- AUTO_INCREMENT de la tabla `notificaciones`
+-- AUTO_INCREMENT de la tabla `proyecto`
 --
-ALTER TABLE `notificaciones`
-  MODIFY `id_notificacion` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+ALTER TABLE `proyecto`
+  MODIFY `id_proyectos` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
--- AUTO_INCREMENT de la tabla `proyectos`
+-- AUTO_INCREMENT de la tabla `publicacion`
 --
-ALTER TABLE `proyectos`
-  MODIFY `id_proyecto` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+ALTER TABLE `publicacion`
+  MODIFY `id_publicacion` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT de la tabla `recuperacioncontrasenas`
@@ -327,7 +362,7 @@ ALTER TABLE `usuarios`
 --
 ALTER TABLE `comentarios`
   ADD CONSTRAINT `comentarios_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id_usuario`) ON DELETE CASCADE,
-  ADD CONSTRAINT `comentarios_ibfk_2` FOREIGN KEY (`id_proyecto`) REFERENCES `proyectos` (`id_proyecto`) ON DELETE CASCADE;
+  ADD CONSTRAINT `fk_comentarios_publicacion` FOREIGN KEY (`id_publicacion`) REFERENCES `publicacion` (`id_publicacion`);
 
 --
 -- Filtros para la tabla `conversaciones`
@@ -340,8 +375,8 @@ ALTER TABLE `conversaciones`
 -- Filtros para la tabla `megusta`
 --
 ALTER TABLE `megusta`
-  ADD CONSTRAINT `megusta_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id_usuario`) ON DELETE CASCADE,
-  ADD CONSTRAINT `megusta_ibfk_2` FOREIGN KEY (`id_proyecto`) REFERENCES `proyectos` (`id_proyecto`) ON DELETE CASCADE;
+  ADD CONSTRAINT `fk_megusta_publicacion` FOREIGN KEY (`id_publicacion`) REFERENCES `publicacion` (`id_publicacion`),
+  ADD CONSTRAINT `megusta_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id_usuario`) ON DELETE CASCADE;
 
 --
 -- Filtros para la tabla `mensajes`
@@ -351,16 +386,16 @@ ALTER TABLE `mensajes`
   ADD CONSTRAINT `mensajes_ibfk_2` FOREIGN KEY (`id_remitente`) REFERENCES `usuarios` (`id_usuario`) ON DELETE CASCADE;
 
 --
--- Filtros para la tabla `notificaciones`
+-- Filtros para la tabla `proyecto`
 --
-ALTER TABLE `notificaciones`
-  ADD CONSTRAINT `notificaciones_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id_usuario`) ON DELETE CASCADE;
+ALTER TABLE `proyecto`
+  ADD CONSTRAINT `proyecto_ibfk_1` FOREIGN KEY (`id_contratista`) REFERENCES `usuarios` (`id_usuario`) ON DELETE CASCADE;
 
 --
--- Filtros para la tabla `proyectos`
+-- Filtros para la tabla `publicacion`
 --
-ALTER TABLE `proyectos`
-  ADD CONSTRAINT `proyectos_ibfk_1` FOREIGN KEY (`id_contratista`) REFERENCES `usuarios` (`id_usuario`) ON DELETE CASCADE;
+ALTER TABLE `publicacion`
+  ADD CONSTRAINT `publicacion_ibfk_1` FOREIGN KEY (`id_proyectos`) REFERENCES `proyecto` (`id_proyectos`) ON DELETE CASCADE;
 
 --
 -- Filtros para la tabla `recuperacioncontrasenas`
