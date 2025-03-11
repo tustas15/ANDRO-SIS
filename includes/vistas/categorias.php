@@ -51,7 +51,7 @@ try {
             padding-top: 10px;
         }
         .category-card a:hover {
-            text-decoration: underline;
+            text-decoration: none;
         }
         a {
             text-decoration: none;

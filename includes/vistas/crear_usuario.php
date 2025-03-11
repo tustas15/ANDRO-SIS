@@ -31,6 +31,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>Crear Nuevo Usuario</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
+        a{
+            text-decoration: none;
+        }
+        a:hover{
+            color:rgb(43, 68, 95);
+            text-decoration: none;
+        }
         .custom-card {
             max-width: 600px;
             margin: 2rem auto;

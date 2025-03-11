@@ -94,7 +94,7 @@ function usuarioDioMegustaPublicacion($id_usuario, $id_publicacion, $conn) {
         :root {
             --primary-color: #2A5C82;
             --secondary-color: #5BA4E6;
-            --accent-color: #FF6B6B;
+            --accent-color:rgb(107, 255, 220);
         }
 
         .contenedor-principal {

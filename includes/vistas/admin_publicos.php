@@ -64,6 +64,15 @@ $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
         input:checked + .slider:before {
             transform: translateX(26px);
         }
+        a {
+            text-decoration: none;
+            color:#007bff;
+            font-size: 1.1em;
+        }
+        a:hover {
+            color:rgb(43, 68, 95);
+            text-decoration: none;
+        }
     </style>
 </head>
 <body>
