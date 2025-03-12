@@ -10,10 +10,26 @@ $mensaje = '';
 $alert_type = ''; // Tipo de alerta para Bootstrap
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // ... [código existente sin cambios] ...
+    $nombre = $_POST['nombre'];
+    $apellido = $_POST['apellido'];
+    $correo = $_POST['correo'];
+    $contrasena = password_hash($_POST['contrasena'], PASSWORD_DEFAULT); // Encriptar la contraseña
+    $perfil = $_POST['perfil'];
+    $estado = $_POST['estado'];
     
     try {
-        // ... [código existente sin cambios] ...
+        // Insertar el nuevo usuario en la base de datos
+        $query = "INSERT INTO Usuarios (nombre, apellido, correo, contrasena, perfil, estado) 
+                  VALUES (:nombre, :apellido, :correo, :contrasena, :perfil, :estado)";
+        $stmt = $conn->prepare($query);
+        $stmt->execute([
+            ':nombre' => $nombre,
+            ':apellido' => $apellido,
+            ':correo' => $correo,
+            ':contrasena' => $contrasena,
+            ':perfil' => $perfil,
+            ':estado' => $estado
+        ]);
         $mensaje = "Usuario creado exitosamente.";
         $alert_type = 'success';
     } catch (PDOException $e) {
