@@ -1,400 +1,509 @@
 <?php
 require_once '../conection/conexion.php';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['crear_proyecto'])) {
-    try {
-        $stmt = $conn->prepare("INSERT INTO proyecto (id_contratista, titulo, etapa, id_categoria, presupuesto) 
-                               VALUES (?, ?, ?, ?, ?)");
-        $stmt->execute([
-            $_POST['id_contratista'],
-            $_POST['titulo'],
-            $_POST['etapa'],
-            $_POST['id_categoria'],
-            $_POST['presupuesto']
-        ]);
-        $_SESSION['mensaje'] = "Proyecto creado exitosamente!";
-    } catch (PDOException $e) {
-        $_SESSION['error'] = "Error al crear proyecto: " . $e->getMessage();
+
+$contratistas = $conn->query("SELECT * FROM usuarios WHERE perfil = 'contratista'")->fetchAll(PDO::FETCH_ASSOC);
+// Operaciones CRUD
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Crear nuevo proyecto
+    if (isset($_POST['create'])) {
+        $titulo = $_POST['titulo'];
+        $id_categoria = $_POST['id_categoria'];
+        $presupuesto = $_POST['presupuesto'];
+        $etapa = $_POST['etapa'];
+        $id_contratista = $_POST['id_contratista'];
+
+        try {
+            $stmt = $conn->prepare("INSERT INTO proyecto (id_contratista, titulo, id_categoria, presupuesto, etapa) 
+                                  VALUES (?, ?, ?, ?, ?)");
+            $stmt->execute([$id_contratista, $titulo, $id_categoria, $presupuesto, $etapa]);
+            $msg = "Proyecto creado exitosamente!";
+        } catch (PDOException $e) {
+            $error = "Error al crear proyecto: " . $e->getMessage();
+        }
+    }
+
+    // Editar proyecto
+    if (isset($_POST['edit'])) {
+        $id_proyectos = $_POST['id_proyectos'];
+        $titulo = $_POST['titulo'];
+        $id_categoria = $_POST['id_categoria'];
+        $presupuesto = $_POST['presupuesto'];
+        $etapa = $_POST['etapa'];
+        $id_contratista = $_POST['id_contratista'];
+
+        try {
+            $stmt = $conn->prepare("UPDATE proyecto SET 
+                                  titulo = ?, 
+                                  id_categoria = ?, 
+                                  presupuesto = ?, 
+                                  etapa = ?,
+                                  id_contratista = ? 
+                                  WHERE id_proyectos = ?");
+            $stmt->execute([$titulo, $id_categoria, $presupuesto, $etapa, $id_contratista, $id_proyectos]);
+            $msg = "Proyecto actualizado exitosamente!";
+        } catch (PDOException $e) {
+            $error = "Error al actualizar proyecto: " . $e->getMessage();
+        }
+    }
+
+    // Eliminar proyecto
+    if (isset($_POST['delete'])) {
+        $id_proyectos = $_POST['id_proyectos'];
+
+        try {
+            // Verificar si tiene comentarios
+            $stmt = $conn->prepare("SELECT COUNT(*) AS total 
+                                  FROM comentarios c
+                                  JOIN publicacion p ON c.id_publicacion = p.id_publicacion
+                                  WHERE p.id_proyectos = ?");
+            $stmt->execute([$id_proyectos]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($result['total'] > 0) {
+                $error = "No se puede eliminar el proyecto porque tiene comentarios";
+            } else {
+                $stmt = $conn->prepare("DELETE FROM proyecto WHERE id_proyectos = ?");
+                $stmt->execute([$id_proyectos]);
+                $msg = "Proyecto eliminado exitosamente!";
+            }
+        } catch (PDOException $e) {
+            $error = "Error al eliminar proyecto: " . $e->getMessage();
+        }
     }
 }
 
-if (isset($_GET['eliminar'])) {
-    $id_proyecto = filter_var($_GET['eliminar'], FILTER_VALIDATE_INT);
+// Obtener categorías
+$categorias = $conn->query("SELECT * FROM categorias")->fetchAll(PDO::FETCH_ASSOC);
 
-    if (!$id_proyecto) {
-        $_SESSION['error'] = "ID inválido";
-        header("Location: index.php?view=admin_NProyecto");
-        exit;
+// Obtener proyectos según categoría
+$id_categoria_filter = $_GET['categoria'] ?? null;
+$where = $id_categoria_filter ? "WHERE p.id_categoria = $id_categoria_filter" : "";
+
+$proyectos = $conn->query("
+    SELECT p.*, 
+    c.nombre AS categoria,
+    u.nombre AS nombre_contratista,
+    u.apellido AS apellido_contratista,
+    (SELECT COUNT(*) FROM publicacion WHERE id_proyectos = p.id_proyectos) AS publicaciones,
+    (SELECT COUNT(*) FROM comentarios 
+     JOIN publicacion ON comentarios.id_publicacion = publicacion.id_publicacion 
+     WHERE publicacion.id_proyectos = p.id_proyectos) AS comentarios
+    FROM proyecto p
+    JOIN categorias c ON p.id_categoria = c.id_categoria
+    JOIN usuarios u ON p.id_contratista = u.id_usuario
+    ORDER BY p.fecha_publicacion DESC
+")->fetchAll(PDO::FETCH_ASSOC);
+
+// Agrupar proyectos por categoría
+$proyectosPorCategoria = [];
+foreach ($proyectos as $pro) {
+    $categoriaId = $pro['id_categoria'];
+    if (!isset($proyectosPorCategoria[$categoriaId])) {
+        $proyectosPorCategoria[$categoriaId] = [
+            'nombre' => $pro['categoria'],
+            'proyectos' => []
+        ];
     }
-
-    try {
-        $conn->beginTransaction();
-
-        // 1. Eliminar comentarios y me gusta
-        $stmt = $conn->prepare("DELETE c, m 
-                               FROM comentarios c
-                               JOIN megusta m USING(id_publicacion)
-                               WHERE c.id_publicacion IN (
-                                   SELECT id_publicacion 
-                                   FROM publicacion 
-                                   WHERE id_proyectos = ?
-                               )");
-        $stmt->execute([$id_proyecto]);
-
-        // 2. Eliminar publicaciones
-        $stmt = $conn->prepare("DELETE FROM publicacion WHERE id_proyectos = ?");
-        $stmt->execute([$id_proyecto]);
-
-        // 3. Eliminar proyecto
-        $stmt = $conn->prepare("DELETE FROM proyecto WHERE id_proyectos = ?");
-        $stmt->execute([$id_proyecto]);
-
-        $conn->commit();
-        $_SESSION['mensaje'] = "✅ Proyecto eliminado";
-
-    } catch (PDOException $e) {
-        $conn->rollBack();
-        $_SESSION['error'] = "❌ Error: " . $e->getMessage();
-    }
-
-    header("Location: index.php?view=admin_NProyecto");
-    exit;
-}
-
-// Actualizar etapa del proyecto
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cambiar_etapa'])) {
-    try {
-        $stmt = $conn->prepare("UPDATE proyecto SET etapa = ? WHERE id_proyectos = ?");
-        $stmt->execute([$_POST['etapa'], $_POST['id_proyecto']]);
-        $_SESSION['mensaje'] = "Etapa actualizada correctamente!";
-    } catch (PDOException $e) {
-        $_SESSION['error'] = "Error al actualizar etapa: " . $e->getMessage();
-    }
-}
-
-// Obtener categorías con proyectos
-try {
-    // Categorías con proyectos
-    $categorias = $conn->query("SELECT * FROM categorias")->fetchAll(PDO::FETCH_ASSOC);
-    
-    foreach ($categorias as &$categoria) {
-        $stmt = $conn->prepare("SELECT p.*, u.nombre as contratista 
-                               FROM proyecto p
-                               JOIN usuarios u ON p.id_contratista = u.id_usuario
-                               WHERE id_categoria = ?");
-        $stmt->execute([$categoria['id_categoria']]);
-        $categoria['proyectos'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
-    
-    // Contratistas para formulario
-    $contratistas = $conn->query("SELECT * FROM usuarios WHERE perfil = 'contratista'")->fetchAll(PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
-    die("Error al obtener datos: " . $e->getMessage());
+    $proyectosPorCategoria[$categoriaId]['proyectos'][] = $pro;
 }
 ?>
 
 <!DOCTYPE html>
-<html lang="es">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Administrar Proyectos</title>
+    <title>Gestión de Proyectos</title>
     <style>
         a:hover{
+            color: #333;
             text-decoration: none;
-            color:#2c3e50;
         }
         :root {
-            --primary-color:rgb(255, 255, 255);
+            --primary-color: #2c3e50;
             --secondary-color: #3498db;
-            --success-color: #27ae60;
-            --danger-color: #e74c3c;
-            --light-bg: #f8f9fa;
-            --text-dark: #2c3e50;
-            --text-light: #ecf0f1;
+            --background: #f8f9fa;
+            --text-color: #333;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
         body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
+            font-family: 'Segoe UI', sans-serif;
+            background: var(--background);
+            color: var(--text-color);
             line-height: 1.6;
-            margin: 0;
-            padding: 20px;
-            background-color: #ecf0f1;
-            color: var(--text-dark);
         }
 
         .container {
             max-width: 1200px;
             margin: 0 auto;
+            padding: 20px;
         }
 
-        .header {
-            text-align: center;
-            padding: 2rem;
-            background: var(--primary-color);
-            color: white;
-            border-radius: 10px;
-            margin-bottom: 2rem;
+        .categories-container {
+            display: grid;
+            grid-gap: 20px;
         }
 
-        .alert {
-            padding: 15px;
-            margin: 1rem 0;
-            border-radius: 5px;
-            border: 1px solid transparent;
-        }
-
-        .alert-success {
-            background-color: #d4edda;
-            border-color: #c3e6cb;
-            color: #155724;
-        }
-
-        .alert-error {
-            background-color: #f8d7da;
-            border-color: #f5c6cb;
-            color: #721c24;
-        }
-
-        .card {
+        .category-card {
             background: white;
             border-radius: 10px;
-            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
-            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             overflow: hidden;
         }
 
-        .card-header {
-            background: var(--light-bg);
-            padding: 1rem 1.5rem;
-            border-bottom: 1px solid #eee;
-        }
-
-        .card-body {
-            padding: 1.5rem;
-        }
-
-        .project-grid {
-            display: grid;
-            gap: 1.5rem;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-        }
-
-        .project-card {
-            background: white;
-            border: 1px solid #eee;
-            border-radius: 8px;
-            padding: 1.5rem;
-            transition: transform 0.2s;
-        }
-
-        .project-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-
-        .badge {
-            display: inline-block;
-            padding: 0.35em 0.65em;
-            border-radius: 20px;
-            font-size: 0.75em;
-            font-weight: 700;
-        }
-
-        .badge-planificacion { background: #f1c40f; color: black; }
-        .badge-ejecucion { background: #3498db; color: white; }
-        .badge-finalizado { background: #27ae60; color: white; }
-
-        .form-section {
-            background: white;
-            border-radius: 10px;
-            padding: 2rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 2px 15px rgba(0,0,0,0.05);
-        }
-
-        .form-grid {
-            display: grid;
-            gap: 1rem;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        }
-
-        .form-group {
-            margin-bottom: 1rem;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-            color: var(--primary-color);
-        }
-
-        input, select {
-            width: 100%;
-            padding: 0.8rem;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 1rem;
-            transition: border-color 0.3s;
-        }
-
-        input:focus, select:focus {
-            outline: none;
-            border-color: var(--secondary-color);
-            box-shadow: 0 0 0 3px rgba(52,152,219,0.1);
-        }
-
-        .btn {
-            padding: 0.8rem 1.5rem;
-            border: none;
-            border-radius: 5px;
+        .category-header {
+            background: var(--primary-color);
+            color: white;
+            padding: 15px 20px;
             cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        .btn-primary {
+        .category-header h3 {
+            margin: 0;
+        }
+
+        .toggle-icon {
+            font-size: 1.2rem;
+            transition: transform 0.3s ease;
+        }
+
+        .category-content {
+            padding: 20px;
+            display: none;
+        }
+
+        .category-card.active .category-content {
+            display: block;
+        }
+
+        .category-card.active .toggle-icon {
+            transform: rotate(180deg);
+        }
+
+        .project-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .project-table th,
+        .project-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .project-table th {
             background: var(--secondary-color);
             color: white;
         }
 
-        .btn-primary:hover {
-            background: #2980b9;
+        .project-table tr:hover {
+            background: #f5f5f5;
         }
 
-        .btn-danger {
-            background: var(--danger-color);
+        .form-section {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .form-section h2 {
+            margin-bottom: 20px;
+            color: var(--primary-color);
+        }
+
+        input, select, button {
+            padding: 8px 12px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        button {
+            background: var(--secondary-color);
             color: white;
+            border: none;
+            cursor: pointer;
+            transition: opacity 0.3s ease;
         }
 
-        .btn-danger:hover {
-            background: #c0392b;
+        button:hover {
+            opacity: 0.9;
         }
 
-        .actions-container {
-            display: flex;
-            gap: 1rem;
-            margin-top: 1.5rem;
-            flex-wrap: wrap;
+        .msg {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
         }
 
-        .stage-form {
-            display: flex;
-            gap: 1rem;
-            align-items: center;
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
         }
 
-        .price-tag {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--success-color);
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .edit-form {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.2);
+            z-index: 1000;
+            display: none;
+        }
+
+        .edit-form.active {
+            display: block;
+        } .edit-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.2);
+            z-index: 1000;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .edit-modal h3 {
+            margin-bottom: 20px;
+            color: var(--primary-color);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .form-actions {
+            margin-top: 20px;
+            text-align: right;
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
         }
     </style>
 </head>
 <body>
     <div class="container">
-
-        <?php if (isset($_SESSION['mensaje'])): ?>
-            <div class="alert alert-success"><?= htmlspecialchars($_SESSION['mensaje']) ?></div>
-            <?php unset($_SESSION['mensaje']); ?>
+        <!-- Mensajes -->
+        <?php if(isset($msg)): ?>
+            <div class="msg success"><?= $msg ?></div>
         <?php endif; ?>
-
-        <?php if (isset($_SESSION['error'])): ?>
-            <div class="alert alert-error"><?= htmlspecialchars($_SESSION['error']) ?></div>
-            <?php unset($_SESSION['error']); ?>
+        <?php if(isset($error)): ?>
+            <div class="msg error"><?= $error ?></div>
         <?php endif; ?>
 
         <!-- Formulario de creación -->
-        <section class="form-section">
-            <h2>➕ Nuevo Proyecto</h2>
+        <div class="form-section">
+            <h2>Crear nuevo proyecto</h2>
             <form method="POST">
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Título del Proyecto</label>
-                        <input type="text" name="titulo" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Contratista Responsable</label>
-                        <select name="id_contratista" required>
-                            <?php foreach ($contratistas as $c): ?>
-                                <option value="<?= $c['id_usuario'] ?>"><?= htmlspecialchars($c['nombre']) ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Etapa Inicial</label>
-                        <select name="etapa" required>
-                            <option value="planificacion">Planificación</option>
-                            <option value="ejecucion">Ejecución</option>
-                            <option value="finalizado">Finalizado</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Categoría</label>
-                        <select name="id_categoria" required>
-                            <?php foreach ($categorias as $cat): ?>
-                                <option value="<?= $cat['id_categoria'] ?>"><?= htmlspecialchars($cat['nombre']) ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Presupuesto (USD)</label>
-                        <input type="number" step="0.01" name="presupuesto" required>
-                    </div>
-                </div>
-                <button type="submit" name="crear_proyecto" class="btn btn-primary">Crear Proyecto</button>
-            </form>
-        </section>
+                <input type="text" name="titulo" placeholder="Título" required>
+                
+                <select name="id_categoria" required>
+                    <?php foreach($categorias as $cat): ?>
+                        <option value="<?= $cat['id_categoria'] ?>"><?= $cat['nombre'] ?></option>
+                    <?php endforeach; ?>
+                </select>
+                
+                <select name="id_contratista" required>
+                    <?php foreach($contratistas as $c): ?>
+                        <option value="<?= $c['id_usuario'] ?>">
+                            <?= $c['nombre'] ?> <?= $c['apellido'] ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                
+                <input type="number" name="presupuesto" step="0.01" placeholder="Presupuesto" required>
+                
+                <select name="etapa" required>
+                    <option value="planificacion">Planificación</option>
+                    <option value="ejecucion">Ejecución</option>
+                    <option value="finalizado">Finalizado</option>
+                </select>
 
-        <!-- Listado de proyectos -->
-        <section>
-            <h2>📂 Proyectos por Categoría</h2>
-            <?php foreach ($categorias as $categoria): ?>
-                <div class="card">
-                    <div class="card-header">
-                        <h3><?= htmlspecialchars($categoria['nombre']) ?></h3>
+                <button type="submit" name="create">Crear</button>
+            </form>
+        </div>
+
+        <!-- Modal de Edición -->
+        <div class="overlay" id="overlay"></div>
+        <div class="edit-modal" id="editModal">
+            <h3>Editar Proyecto</h3>
+            <form method="POST" id="editForm">
+                <input type="hidden" name="id_proyectos" id="editId">
+                
+                <div class="form-group">
+                    <label>Título:</label>
+                    <input type="text" name="titulo" id="editTitulo" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Categoría:</label>
+                    <select name="id_categoria" id="editCategoria" required>
+                        <?php foreach($categorias as $cat): ?>
+                            <option value="<?= $cat['id_categoria'] ?>"><?= $cat['nombre'] ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Contratista:</label>
+                    <select name="id_contratista" id="editContratista" required>
+                        <?php foreach($contratistas as $c): ?>
+                            <option value="<?= $c['id_usuario'] ?>">
+                                <?= $c['nombre'] ?> <?= $c['apellido'] ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Presupuesto:</label>
+                    <input type="number" name="presupuesto" id="editPresupuesto" step="0.01" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Etapa:</label>
+                    <select name="etapa" id="editEtapa" required>
+                        <?php foreach(['planificacion', 'ejecucion', 'finalizado'] as $etapa): ?>
+                            <option value="<?= $etapa ?>"><?= ucfirst($etapa) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" name="edit">Guardar</button>
+                    <button type="button" onclick="closeEditForm()">Cancelar</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Listado de proyectos por categoría -->
+        <div class="categories-container">
+            <?php foreach($proyectosPorCategoria as $catId => $categoria): ?>
+                <div class="category-card">
+                    <div class="category-header" onclick="toggleCategory(<?= $catId ?>)">
+                        <h3><?= $categoria['nombre'] ?></h3>
+                        <span class="toggle-icon">▼</span>
                     </div>
-                    <div class="card-body">
-                        <div class="project-grid">
-                            <?php foreach ($categoria['proyectos'] as $proyecto): ?>
-                                <div class="project-card">
-                                    <div class="badge badge-<?= $proyecto['etapa'] ?>">
-                                        <?= ucfirst($proyecto['etapa']) ?>
-                                    </div>
-                                    <h4><?= htmlspecialchars($proyecto['titulo']) ?></h4>
-                                    <p class="price-tag">$<?= number_format($proyecto['presupuesto'], 2) ?></p>
-                                    <p>👷 Contratista: <?= htmlspecialchars($proyecto['contratista']) ?></p>
-                                    <p>📅 <?= date('d/m/Y', strtotime($proyecto['fecha_publicacion'])) ?></p>
-                                    
-                                    <div class="actions-container">
-                                        <form method="POST" class="stage-form">
-                                            <input type="hidden" name="id_proyecto" value="<?= $proyecto['id_proyectos'] ?>">
-                                            <select name="etapa" class="btn">
-                                                <option value="planificacion" <?= $proyecto['etapa'] === 'planificacion' ? 'selected' : '' ?>>Planificación</option>
-                                                <option value="ejecucion" <?= $proyecto['etapa'] === 'ejecucion' ? 'selected' : '' ?>>Ejecución</option>
-                                                <option value="finalizado" <?= $proyecto['etapa'] === 'finalizado' ? 'selected' : '' ?>>Finalizado</option>
-                                            </select>
-                                            <button type="submit" name="cambiar_etapa" class="btn btn-primary">Actualizar</button>
+                    <div class="category-content" id="category-<?= $catId ?>">
+                        <table class="project-table">
+                            <thead>
+                                <tr>
+                                    <th>Título</th>
+                                    <th>Contratista</th>
+                                    <th>Presupuesto</th>
+                                    <th>Etapa</th>
+                                    <th>Publicaciones</th>
+                                    <th>Comentarios</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach($categoria['proyectos'] as $pro): ?>
+                                <tr data-id="<?= $pro['id_proyectos'] ?>"
+                                    data-titulo="<?= htmlspecialchars($pro['titulo']) ?>"
+                                    data-categoria="<?= $pro['id_categoria'] ?>"
+                                    data-contratista="<?= $pro['id_contratista'] ?>"
+                                    data-presupuesto="<?= $pro['presupuesto'] ?>"
+                                    data-etapa="<?= $pro['etapa'] ?>">
+                                    <td><?= $pro['titulo'] ?></td>
+                                    <td><?= $pro['nombre_contratista'] ?> <?= $pro['apellido_contratista'] ?></td>
+                                    <td>$<?= number_format($pro['presupuesto'], 2) ?></td>
+                                    <td><?= ucfirst($pro['etapa']) ?></td>
+                                    <td><?= $pro['publicaciones'] ?></td>
+                                    <td><?= $pro['comentarios'] ?></td>
+                                    <td>
+                                        <button type="button" onclick="showEditForm(this)">Editar</button>
+                                        <form method="POST" style="display:inline;">
+                                            <input type="hidden" name="id_proyectos" value="<?= $pro['id_proyectos'] ?>">
+                                            <button type="submit" name="delete" <?= ($pro['comentarios'] > 0) ? 'disabled title="No se puede eliminar con comentarios"' : '' ?>>Eliminar</button>
                                         </form>
-                                        
-                                        <a href="index.php?view=admin_NProyecto&eliminar=<?= $proyecto['id_proyectos'] ?>" 
-   onclick="return confirm('¿Estás seguro?')" 
-   class="btn btn-danger">
-   Eliminar
-</a>
-                                    </div>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             <?php endforeach; ?>
-        </section>
+        </div>
     </div>
-</body>
+
+    <script>
+        // Mostrar formulario de edición
+        function showEditForm(button) {
+            const row = button.closest('tr');
+            const modal = document.getElementById('editModal');
+            const overlay = document.getElementById('overlay');
+
+            // Llenar datos del formulario
+            document.getElementById('editId').value = row.dataset.id;
+            document.getElementById('editTitulo').value = row.dataset.titulo;
+            document.getElementById('editCategoria').value = row.dataset.categoria;
+            document.getElementById('editContratista').value = row.dataset.contratista;
+            document.getElementById('editPresupuesto').value = row.dataset.presupuesto;
+            document.getElementById('editEtapa').value = row.dataset.etapa;
+
+            // Mostrar elementos
+            modal.style.display = 'block';
+            overlay.style.display = 'block';
+        }
+
+        // Cerrar formulario
+        function closeEditForm() {
+            document.getElementById('editModal').style.display = 'none';
+            document.getElementById('overlay').style.display = 'none';
+        }
+
+        // Toggle categorías
+        function toggleCategory(catId) {
+            const content = document.getElementById(`category-${catId}`);
+            const card = content.parentElement;
+            card.classList.toggle('active');
+            content.style.display = content.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // Cerrar al hacer click fuera del modal
+        document.getElementById('overlay').addEventListener('click', closeEditForm);
+    </script>
 </html>
