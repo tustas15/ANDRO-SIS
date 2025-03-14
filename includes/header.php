@@ -58,9 +58,11 @@ if (session_status() === PHP_SESSION_NONE) {
             <i class="fas fa-bars menu-icon" aria-label="Abrir menú"></i>
             <div class="dropdown-menu" id="profile-menu">
                 <?php if ($_SESSION['perfil'] === 'admin'): ?>
-                    <a href="index.php?view=crear_usuario">Crear nuevo usuario</a>
-                    <a href="index.php?view=admin_contratistas">Gestionar Contratistas</a>
-                    <a href="index.php?view=admin_publicos">Gestionar Usuarios Públicos</a>
+                    <a href="index.php?view=crear_usuario">Nuevo usuario</a>
+                    <a href="index.php?view=admin_contratistas">Contratistas</a>
+                    <a href="index.php?view=admin_publicos">Usuarios Públicos</a>
+                    <a href="index.php?view=admin_NProyecto">Proyectos</a>
+                    <a href="index.php?view=admin_NCategoria">Categorias</a>
                 <?php elseif ($_SESSION['perfil'] === 'contratista'): ?>
                     <a href="index.php?view=nueva_publicacion">Crear Nueva Publicación</a>
                     <a href="index.php?view=mis_publicaciones">Ver Mis Publicaciones</a>

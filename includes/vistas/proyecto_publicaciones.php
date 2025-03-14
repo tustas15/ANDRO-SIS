@@ -65,10 +65,18 @@ try {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
+        a{
+            text-decoration: none;
+        }
+        a:hover{
+            color:rgb(43, 68, 95);
+            text-decoration: none;
+        }
+
         :root {
             --primary-color: #2A5C82;
             --secondary-color: #5BA4E6;
-            --accent-color: #FF6B6B;
+            --accent-color:rgb(107, 255, 220);
         }
 
         .project-header {
