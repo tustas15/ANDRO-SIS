@@ -1,7 +1,7 @@
 <?php
-// acciones.php
-require '../conection/conexion.php';
+
 session_start();
+require_once '../../conection/conexion.php';
 
 header('Content-Type: application/json');
 
@@ -50,9 +50,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $response['message'] = 'Error al procesar el me gusta';
         }
     }
-
-
-    
     
     // Procesar comentarios
     // En la sección de procesar comentarios, modificar la respuesta para incluir si el comentario pertenece al usuario logueado
@@ -83,6 +80,16 @@ if (isset($_POST['action']) && $_POST['action'] === 'comentar') {
         $stmt->execute();
         $comentarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
+            $stmt = $conn->prepare("SELECT COUNT(*) as total FROM megusta WHERE id_publicacion = :id_publicacion");
+            $stmt->bindParam(':id_publicacion', $id_publicacion);
+            $stmt->execute();
+            $total = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+            
+            $response = [
+                'success' => true,
+                'total' => $total,
+                'comento' => !$comentario
+            ];
         // Agregar información sobre si el comentario pertenece al usuario logueado
         foreach ($comentarios as &$comentario) {
             $comentario['pertenece_al_usuario'] = ($comentario['id_usuario'] == $_SESSION['id_usuario']);
