@@ -5,21 +5,33 @@ use CodeIgniter\Router\RouteCollection;
 /**
  * @var RouteCollection $routes
  */
-// Ruta principal redirige al login
-$routes->get('/', 'AuthController::login');
+$routes->get('/', 'Auth::index');
+$routes->get('auth', 'Auth::index');
+$routes->post('auth/login', 'Auth::login');
+$routes->get('auth/logout', 'Auth::logout');
+$routes->get('auth/forgot_password', 'Auth::forgotPassword');
+$routes->post('auth/process_forgot_password', 'Auth::processForgotPassword');
+$routes->get('auth/reset_password/(:any)', 'Auth::resetPassword/$1');
+$routes->post('auth/process_reset_password', 'Auth::processResetPassword');
 
-// Rutas de autenticación
-$routes->group('auth', function ($routes) {
-    $routes->get('login', 'AuthController::login');
-    $routes->post('login', 'AuthController::login');
-    $routes->get('logout', 'AuthController::logout');
+$routes->get('dashboard', 'Dashboard::index', ['filter' => 'auth']);
+
+// Ruta específica para gestión de proyectos admin
+$routes->group('admin', ['filter' => 'admin'], function($routes) {
+    $routes->get('proyectos', 'Admin\Proyectos::index');
+    $routes->post('proyectos/crear', 'Admin\Proyectos::crearCategoria');
+    $routes->post('proyectos/eliminar', 'Admin\Proyectos::eliminarCategoria');
 });
 
-// Rutas protegidas (ejemplo)
-$routes->group('admin', ['filter' => 'auth'], function ($routes) {
-    $routes->get('dashboard', 'AdminController::dashboard');
+// Contratista routes
+$routes->group('contratista', ['filter' => 'contratista'], function ($routes) {
+    $routes->get('proyectos', 'Contratista\Proyectos::index');
+    $routes->get('publicaciones', 'Contratista\Publicaciones::index');
+    $routes->get('conversaciones', 'Contratista\Conversaciones::index');
 });
 
-$routes->group('contratista', ['filter' => 'auth'], function ($routes) {
-    $routes->get('dashboard', 'ContratistaController::dashboard');
+// Publico routes
+$routes->group('publico', ['filter' => 'publico'], function ($routes) {
+    $routes->get('proyectos', 'Publico\Proyectos::index');
+    $routes->get('publicaciones', 'Publico\Publicaciones::index');
 });

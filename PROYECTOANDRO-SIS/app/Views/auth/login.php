@@ -1,3 +1,4 @@
+<!-- app/Views/auth/login.php -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -23,12 +24,12 @@
                     <a href="<?= base_url() ?>"><img src="<?= base_url('images/logo_esperanza.png') ?>" alt="Logo del sistema"></a>
                 </div>
 
-                <form class="login100-form validate-form" method="POST" action="<?= base_url('auth/login') ?>">
+                <?= form_open('auth/login', ['class' => 'login100-form validate-form']) ?>
                     <?= csrf_field() ?>
                     
-                    <?php if (session()->getFlashdata('error')): ?>
+                    <?php if (session('error')): ?>
                     <div class="alert alert-danger mb-4">
-                        <?= session()->getFlashdata('error') ?>
+                        <?= session('error') ?>
                     </div>
                     <?php endif; ?>
 
@@ -38,25 +39,25 @@
 
                     <div class="wrap-input100 validate-input" data-validate="Correo requerido">
                         <input class="input100" type="email" name="correo" placeholder="Correo" 
-                            value="<?= old('correo') ?>">
+                            value="<?= old('correo') ?>" required>
                         <span class="focus-input100"></span>
                         <span class="symbol-input100">
                             <i class="fa fa-envelope" aria-hidden="true"></i>
                         </span>
                     </div>
-                    <?php if (isset($validation) && $validation->hasError('correo')): ?>
-                        <div class="text-danger p-b-10"><?= $validation->getError('correo') ?></div>
+                    <?php if (session('errors.correo')): ?>
+                        <div class="text-danger p-b-10"><?= session('errors.correo') ?></div>
                     <?php endif; ?>
 
                     <div class="wrap-input100 validate-input" data-validate="Contraseña requerida">
-                        <input class="input100" type="password" name="contrasena" placeholder="Contraseña">
+                        <input class="input100" type="password" name="contrasena" placeholder="Contraseña" required>
                         <span class="focus-input100"></span>
                         <span class="symbol-input100">
                             <i class="fa fa-lock" aria-hidden="true"></i>
                         </span>
                     </div>
-                    <?php if (isset($validation) && $validation->hasError('contrasena')): ?>
-                        <div class="text-danger p-b-10"><?= $validation->getError('contrasena') ?></div>
+                    <?php if (session('errors.contrasena')): ?>
+                        <div class="text-danger p-b-10"><?= session('errors.contrasena') ?></div>
                     <?php endif; ?>
 
                     <div class="container-login100-form-btn">
@@ -66,18 +67,18 @@
                     </div>
 
                     <div class="text-center p-t-12">
-                        <a class="txt2" href="<?= base_url('auth/recuperar') ?>">
+                        <a class="txt2" href="<?= site_url('auth/forgot_password') ?>">
                             ¿Olvidaste tu contraseña?
                         </a>
                     </div>
 
                     <div class="text-center p-t-136">
-                        <a class="txt2" href="<?= base_url('auth/registro') ?>">
+                        <a class="txt2" href="<?= site_url('auth/registro') ?>">
                             Crear nueva cuenta
                             <i class="fa fa-long-arrow-right m-l-5" aria-hidden="true"></i>
                         </a>
                     </div>
-                </form>
+                <?= form_close() ?>
             </div>
         </div>
     </div>
