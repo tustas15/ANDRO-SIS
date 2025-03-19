@@ -1,6 +1,9 @@
 <?php
 session_start();
 require_once '../../conection/conexion.php';
+
+$id_publicacion = $_GET['id_publicacion'] ?? 0;
+
 $id_usuario = $_SESSION['id_usuario'];
 $query = "SELECT nombre, apellido, correo, perfil, imagen_perfil FROM Usuarios WHERE id_usuario = :id_usuario";
 $stmt_usuario = $conn->prepare($query);
@@ -8,45 +11,7 @@ $stmt_usuario->bindParam(':id_usuario', $id_usuario, PDO::PARAM_INT);
 $stmt_usuario->execute();
 $usuario = $stmt_usuario->fetch(PDO::FETCH_ASSOC);
 
-// Configuración de paginación
-$pagina = isset($_GET['pagina']) ? (int)$_GET['pagina'] : 1;
-$publicacionesPorPagina = 5;
-$offset = ($pagina - 1) * $publicacionesPorPagina;
-
-try {
-    // Obtener publicaciones
-    $stmt = $conn->prepare("
-        SELECT 
-            p.titulo as proyecto_titulo,
-            pub.*, u.imagen_perfil,
-            u.nombre as contratista_nombre,
-            u.apellido as contratista_apellido
-        FROM publicacion pub
-        INNER JOIN proyecto p ON pub.id_proyectos = p.id_proyectos
-        INNER JOIN usuarios u ON p.id_contratista = u.id_usuario
-        ORDER BY pub.fecha_publicacion DESC
-        LIMIT :limit OFFSET :offset
-    ");
-    $stmt->bindValue(':limit', $publicacionesPorPagina, PDO::PARAM_INT);
-    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-    $stmt->execute();
-    $publicaciones = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    $stmt_proyectos = $conn->prepare("
-        SELECT id_proyectos, titulo, fecha_publicacion 
-        FROM proyecto 
-        ORDER BY fecha_publicacion DESC
-    ");
-    $stmt_proyectos->execute();
-    $proyectos = $stmt_proyectos->fetchAll(PDO::FETCH_ASSOC);
-
-    $stmt=$conn->prepare("SELECT * from categorias order by id_categoria");
-    $stmt->execute();
-    $categorias = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-
-
-    $stmt_contratistas = $conn->prepare("
+$stmt_contratistas = $conn->prepare("
         SELECT u.*,
     COUNT(DISTINCT p.id_proyectos) as total_proyectos,
     COUNT(DISTINCT pub.id_publicacion) as total_publicaciones,
@@ -61,36 +26,61 @@ try {
     $stmt_contratistas->execute();
     $contratistas = $stmt_contratistas->fetchAll(PDO::FETCH_ASSOC);
 
-    // Calcular total de páginas
-    $totalPublicaciones = $conn->query("SELECT COUNT(*) FROM publicacion")->fetchColumn();
-    $totalPaginas = ceil($totalPublicaciones / $publicacionesPorPagina);
+$stmt_proyectos = $conn->prepare("
+SELECT id_proyectos, titulo, fecha_publicacion 
+FROM proyecto 
+ORDER BY fecha_publicacion DESC
+");
+$stmt_proyectos->execute();
+$proyectos = $stmt_proyectos->fetchAll(PDO::FETCH_ASSOC);
 
-} catch(PDOException $e) {
-    die("Error: " . $e->getMessage());
-}
+$stmt=$conn->prepare("SELECT * from categorias order by id_categoria");
+$stmt->execute();
+$categorias = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Funciones auxiliares
+
+
+
+
+
+//Obtener publicacion
+$stmt=$conn->prepare("SELECT 
+        p.*,
+        pr.titulo AS proyecto_titulo,
+        u_con.id_usuario AS contratista_id,
+        u_con.nombre AS contratista_nombre,
+        u_con.apellido AS contratista_apellido,
+        u_con.correo AS contratista_correo,
+        u_con.imagen_perfil AS contratista_imagen
+    FROM publicacion p
+    INNER JOIN proyecto pr ON p.id_proyectos = pr.id_proyectos
+    INNER JOIN usuarios u_con ON pr.id_contratista = u_con.id_usuario
+    WHERE p.id_publicacion = ?");
+$stmt->execute([$id_publicacion]);
+$Epublicaciones = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
 function obtenerComentariosPublicacion($id_publicacion, $conn) {
     $stmt = $conn->prepare("
-        SELECT c.*, u.nombre, u.apellido 
+        SELECT c.*, u.* 
         FROM comentarios c
         INNER JOIN usuarios u ON c.id_usuario = u.id_usuario
-        WHERE c.id_publicacion = :id_publicacion
-        ORDER BY c.fecha DESC
+        WHERE c.id_publicacion = ?
+        ORDER BY c.fecha ASC
     ");
-    $stmt->execute([':id_publicacion' => $id_publicacion]);
+    $stmt->execute([$id_publicacion]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
 function obtenerTotalMegustasPublicacion($id_publicacion, $conn) {
-    $stmt = $conn->prepare("SELECT COUNT(*) as total FROM megusta WHERE id_publicacion = :id_publicacion");
-    $stmt->execute([':id_publicacion' => $id_publicacion]);
+    $stmt = $conn->prepare("SELECT COUNT(*) as total FROM megusta WHERE id_publicacion = ?");
+    $stmt->execute([$id_publicacion]);
     return $stmt->fetchColumn();
 }
 
 function obtenerTotalComentarios($id_publicacion, $conn){
-    $stmt = $conn->prepare("SELECT COUNT(*) as total FROM comentarios Where id_publicacion=:id_publicacion");
-    $stmt->execute([':id_publicacion' => $id_publicacion]);
+    $stmt = $conn->prepare("SELECT COUNT(*) as total FROM comentarios Where id_publicacion=?");
+    $stmt->execute([$id_publicacion]);
     return $stmt->fetchColumn();
 }
 
@@ -107,10 +97,6 @@ function usuarioDioMegustaPublicacion($id_usuario, $id_publicacion, $conn) {
     return (bool)$stmt->fetchColumn();
 }
 
-// Obtener datos del contratista con estadísticas
-
-
-
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -119,9 +105,11 @@ function usuarioDioMegustaPublicacion($id_usuario, $id_publicacion, $conn) {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="x-ua-compatible" content="ie=edge">
 
-    <title>GAD "LA ESPERANZA"</title>
+    <title>Feed - Social Network</title>
     <link rel="shortcut icon" href="images/favicon.png" type="image/x-icon">
 
+
+    <!-- CSS -->
     <link rel="stylesheet" type="text/css" href="css/style.css">
 
     <!-- Fonts -->
@@ -133,7 +121,7 @@ function usuarioDioMegustaPublicacion($id_usuario, $id_publicacion, $conn) {
 
 </head>
 <body>
-    <div class="navbar">
+<div class="navbar">
         <div class="navbar_menuicon" id="navicon">
             <i class="fa fa-navicon"></i>
         </div>
@@ -199,19 +187,22 @@ function usuarioDioMegustaPublicacion($id_usuario, $id_publicacion, $conn) {
             </div>
         </div>
 
+
+
         <div class="right_row">
+            <div class="row border-radius">
             
-        <div class="row border-radius">
-        <?php if (count($publicaciones) > 0): ?>
-            <?php foreach ($publicaciones as $publicacion): ?>
+        
                 <div class="feed">
+                <?php if (count($Epublicaciones) > 0): ?>
+                    <?php foreach ($Epublicaciones as $publicacion): ?>
                     <div class="feed_title">
-                        <img src="../../assets/images/<?php echo htmlspecialchars($publicacion['imagen_perfil']); ?>" alt="" />
+                        <img src="images/<?php echo htmlspecialchars($publicacion['contratista_imagen'], ENT_QUOTES, 'UTF-8'); ?>" alt="" />
                         <span><b><?= htmlspecialchars($publicacion['contratista_nombre'] . ' ' . $publicacion['contratista_apellido']) ?> </b><br> <b>PROYECTO:</b> <a href="feed.php?id_publicacion=<?= $publicacion['id_publicacion'] ?>"><?= htmlspecialchars($publicacion['proyecto_titulo']) ?></a><br><b><?= htmlspecialchars($publicacion['titulo']) ?></b><p><?= date('d M Y', strtotime($publicacion['fecha_publicacion'])) ?></p></span>
                     </div>
                     <div class="feed_content">
                         <div class="feed_content_image">
-                            <p><?= nl2br(htmlspecialchars($publicacion['descripcion'])) ?></p>
+                        <p><?= nl2br(htmlspecialchars($publicacion['descripcion'])) ?></p>
                             <a href="feed.php?id_publicacion=<?= $publicacion['id_publicacion'] ?>"><img src="images/<?= htmlspecialchars($publicacion['imagen']) ?>" alt="" /></a>
                         </div>
                     </div>
@@ -230,10 +221,43 @@ function usuarioDioMegustaPublicacion($id_usuario, $id_publicacion, $conn) {
                             </li>
                         </ul>
                     </div>
-                </div>
-                <?php endforeach; ?>
+                    <?php endforeach; ?>
             <?php endif; ?>
+                </div>
+                
+
+                <div class="feedcomments">
+                    <ul>
+                    <form class="form-comentario" data-publicacion-id="<?= $publicacion['id_publicacion'] ?>">
+                        <div class="feedcomments-user">
+                            <div class="publish_textarea">
+                            <textarea type="text" placeholder="Escribe tu comentario..." style="resize: none;"></textarea>
+                            </div>
+                            <div class="publish_icons"><button> Comentar</button></div>
+                        </div>
+                    </form>
+
+                    <?php $comentarios = obtenerComentariosPublicacion($publicacion['id_publicacion'], $conn) ?>
+                                <?php if (!empty($comentarios)): ?>
+                                    <?php foreach ($comentarios as $comentario): ?>
+                        <li>
+                            <div class="feedcomments-user">
+                                <img src="images/<?php echo htmlspecialchars($comentario['imagen_perfil'], ENT_QUOTES, 'UTF-8'); ?>" />
+                                <span><b><?= ($comentario['nombre']) .' '. ($comentario['apellido']) ?></b><br><p><?= date('d M H:i', strtotime($comentario['fecha'])) ?></p></span>
+                            </div>
+                            <div class="feedcomments-comment">
+                                <p><?= htmlspecialchars($comentario['comentario']) ?></p>
+                            </div>
+                        </li>
+                        <?php endforeach; ?>
+                        <?php else: ?>
+                            <div>Se el primero en comentar</div>
+                        <?php endif; ?>
+                        
+                    </ul>
+                </div>
             </div>
+            
             
 
             <center>
@@ -243,8 +267,9 @@ function usuarioDioMegustaPublicacion($id_usuario, $id_publicacion, $conn) {
             </center>
         </div>
 
+
         <div class="suggestions_row">
-            <div class="row shadow">
+        <div class="row shadow">
                 <div class="row_title">
                     <span>CONTRATISTAS </span>
                 </div>
@@ -316,6 +341,7 @@ function usuarioDioMegustaPublicacion($id_usuario, $id_publicacion, $conn) {
     <?php endif; ?>
     
             </div>
+        </div>
         </div>
     </div>
     <button onclick="topFunction()" id="myBtn" title="Go to top"><i class="fa fa-arrow-up"></i></button>
@@ -401,6 +427,12 @@ function usuarioDioMegustaPublicacion($id_usuario, $id_publicacion, $conn) {
                     </a>
                 </li>
                 <li>
+                    <a href="#">
+                        <i class="fa fa-star-o" aria-hidden="true"></i>
+                        <span><b>Create a page</b><br>Create your page</span>
+                    </a>
+                </li>
+                <li>
                     <a href="login.html">
                         <i class="fa fa-power-off" aria-hidden="true"></i>
                         <span><b>Log Out</b><br>Close your session</span>
@@ -421,7 +453,7 @@ function usuarioDioMegustaPublicacion($id_usuario, $id_publicacion, $conn) {
             </div>
             <div class="mobilemenu_menu">
                 <ul>
-                    <li><a href="index.html" id="mobilemenu-selected"><i class="fa fa-globe"></i>Newsfeed</a></li>
+                    <li><a href="index.html"><i class="fa fa-globe"></i>Newsfeed</a></li>
                     <li><a href="profile.html"><i class="fa fa-user"></i>Profile</a></li>
                     <li><a href="friends.html"><i class="fa fa-users"></i>Friends</a></li>
                     <li><a href="messages.html"><i class="fa fa-comments-o"></i>messages</a></li>
@@ -452,146 +484,6 @@ function usuarioDioMegustaPublicacion($id_usuario, $id_publicacion, $conn) {
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
     <script>
-
-        // Manejar Me Gusta
-        document.querySelectorAll('.form-megusta').forEach(form => {
-            form.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const publicacionId = form.dataset.publicacionId;
-                
-                try {
-                    const response = await fetch('acciones.php', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                        body: `action=megusta&id_publicacion=${publicacionId}`
-                    });
-                    
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                        const boton = form.querySelector('button');
-                        const contador = form.querySelector('.total-megusta');
-                        contador.textContent = data.total;
-                        boton.classList.toggle('activo', data.dio_megusta);
-                    }
-                } catch (error) {
-                    console.error('Error:', error);
-                }
-            });
-        });
-
-
-        // Manejar Comentarios
-        document.querySelectorAll('.form-comentario').forEach(form => {
-            form.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const publicacionId = form.dataset.publicacionId;
-                const texto = form.querySelector('textarea').value;
-                
-                try {
-                    const response = await fetch('acciones.php', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                        body: `action=comentar&id_publicacion=${publicacionId}&comentario=${encodeURIComponent(texto)}`
-                    });
-                    
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                        const boton = form.querySelector('button');
-                        const contador = form.querySelector('.total-comentarios');
-                        contador.textContent = data.total;
-                        boton.classList.toggle('activo', data.comentario);
-                    }
-
-                    if (data.success) {
-                        const comentariosDiv = document.getElementById(`comentarios-${publicacionId}`);
-                        comentariosDiv.querySelectorAll('.comentario').forEach(c => c.remove());
-                        
-
-
-
-                        // Dentro de la función de manejo de comentarios (proyectos.php)
-data.comentarios.forEach(comentario => {
-    const div = document.createElement('div');
-    div.className = 'comentario';
-    div.innerHTML = `
-        <strong>${comentario.nombre} ${comentario.apellido}</strong>
-        <p>${comentario.comentario}</p>
-        <small>${new Date(comentario.fecha).toLocaleDateString('es-ES', { 
-            day: '2-digit', 
-            month: '2-digit', 
-            year: 'numeric', 
-            hour: '2-digit', 
-            minute: '2-digit' 
-        })}</small>
-        ${comentario.pertenece_al_usuario ? `
-        <div class="acciones-comentario">
-            <i class="fas fa-edit" 
-               onclick="editarComentario(${comentario.id_comentario})" 
-               title="Editar comentario"
-               aria-label="Editar comentario"></i>
-            <i class="fas fa-trash-alt" 
-               onclick="eliminarComentario(${comentario.id_comentario})" 
-               title="Eliminar comentario"
-               aria-label="Eliminar comentario"></i>
-        </div>
-        ` : ''}
-    `;
-    comentariosDiv.insertBefore(div, form);
-});
-                        
-                        form.querySelector('textarea').value = '';
-                    }
-                } catch (error) {
-                    console.error('Error:', error);
-                }
-            });
-        });
-
-        // Función eliminarComentario actualizada
-        async function eliminarComentario(idComentario) {
-    try {
-        const response = await fetch('acciones.php', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-            body: `action=eliminar_comentario&id_comentario=${idComentario}`
-        });
-        const data = await response.json();
-        if (data.success) {
-            document.querySelector(`.fa-trash-alt[onclick*="${idComentario}"]`)
-                    .closest('.comentario').remove();
-        }
-    } catch (error) {
-        console.error('Error:', error);
-    }
-}
-
-async function editarComentario(idComentario) {
-    const comentarioElement = document.querySelector(`.fa-edit[onclick*="${idComentario}"]`)
-                               .closest('.comentario');
-    const textoOriginal = comentarioElement.querySelector('p').textContent;
-    
-    const nuevoTexto = prompt('Edita tu comentario:', textoOriginal);
-    if (nuevoTexto !== null && nuevoTexto.trim() !== textoOriginal.trim()) {
-        try {
-            const response = await fetch('acciones.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: `action=editar_comentario&id_comentario=${idComentario}&comentario=${encodeURIComponent(nuevoTexto)}`
-            });
-            const data = await response.json();
-            if (data.success) {
-                comentarioElement.querySelector('p').textContent = nuevoTexto;
-            }
-        } catch (error) {
-            console.error('Error:', error);
-        }
-    }
-}
-
-
-
     // Modals
     $(document).ready(function(){
 
@@ -644,6 +536,98 @@ async function editarComentario(idComentario) {
             document.body.scrollTop = 0;
             document.documentElement.scrollTop = 0;
         }
+    </script>
+    <script>
+        function toggleComentarios(id) {
+            const div = document.getElementById(`comentarios-${id}`);
+            div.style.display = div.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // Manejar Me Gusta
+        document.querySelectorAll('.form-megusta').forEach(form => {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const publicacionId = form.dataset.publicacionId;
+                
+                try {
+                    const response = await fetch('acciones.php', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                        body: `action=megusta&id_publicacion=${publicacionId}`
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        const boton = form.querySelector('button');
+                        const contador = form.querySelector('.total-megusta');
+                        contador.textContent = data.total;
+                        boton.classList.toggle('activo', data.dio_megusta);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            });
+        });
+
+        // Manejar Comentarios
+        document.querySelectorAll('.form-comentario').forEach(form => {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const publicacionId = form.dataset.publicacionId;
+                const texto = form.querySelector('textarea').value;
+                
+                try {
+                    const response = await fetch('acciones.php', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                        body: `action=comentar&id_publicacion=${publicacionId}&comentario=${encodeURIComponent(texto)}`
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        const comentariosDiv = document.getElementById(`comentarios-${publicacionId}`);
+                        comentariosDiv.querySelectorAll('.comentario').forEach(c => c.remove());
+                        
+                        // Dentro de la función de manejo de comentarios (proyectos.php)
+data.comentarios.forEach(comentario => {
+    const div = document.createElement('div');
+    div.className = 'comentario';
+    div.innerHTML = `
+        <strong>${comentario.nombre} ${comentario.apellido}</strong>
+        <p>${comentario.comentario}</p>
+        <small>${new Date(comentario.fecha).toLocaleDateString('es-ES', { 
+            day: '2-digit', 
+            month: '2-digit', 
+            year: 'numeric', 
+            hour: '2-digit', 
+            minute: '2-digit' 
+        })}</small>
+        ${comentario.pertenece_al_usuario ? `
+        <div class="acciones-comentario">
+            <i class="fas fa-edit" 
+               onclick="editarComentario(${comentario.id_comentario})" 
+               title="Editar comentario"
+               aria-label="Editar comentario"></i>
+            <i class="fas fa-trash-alt" 
+               onclick="eliminarComentario(${comentario.id_comentario})" 
+               title="Eliminar comentario"
+               aria-label="Eliminar comentario"></i>
+        </div>
+        ` : ''}
+    `;
+    comentariosDiv.insertBefore(div, form);
+});
+                        
+                        form.querySelector('textarea').value = '';
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            });
+        });
+
     </script>
 </body>
 </html>
