@@ -31,8 +31,9 @@
     </div>
 <?php endif; ?>
 
-<?php foreach ($publicaciones as $publicacion): ?>
+
     <div class="row border-radius">
+        <?php foreach ($publicaciones as $publicacion): ?>
         <div class="feed">
             <div class="feed_title">
                 <img src="<?= base_url($publicacion['/imagen/imagen_perfil'] ?? 'images/user.jpg') ?>" alt="<?= esc($publicacion['nombre']) ?>">
@@ -43,9 +44,10 @@
             </div>
 
             <div class="feed_content">
-                <p><?= esc($publicacion['descripcion']) ?></p>
+                
                 <?php if (!empty($publicacion['imagen'])): ?>
                     <div class="feed_content_image">
+                    <p><?= esc($publicacion['descripcion']) ?></p>
                         <img src="<?= base_url('uploads/' . $publicacion['imagen']) ?>" alt="Publicación de <?= esc($publicacion['nombre']) ?>">
                     </div>
                 <?php endif; ?>
@@ -70,8 +72,13 @@
                 </ul>
             </div>
         </div>
-    </div>
+        
 <?php endforeach; ?>
-
+    </div>
+    <center>
+                <a href=""><div class="loadmorefeed">
+                    <i class="fa fa-ellipsis-h"></i>
+                </div></a>
+            </center>
 
 <?= $this->endSection() ?>

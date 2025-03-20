@@ -1,5 +1,4 @@
 <?php
-session_start();
 require_once '../../conection/conexion.php';
 $id_usuario = $_SESSION['id_usuario'];
 $query = "SELECT nombre, apellido, correo, perfil, imagen_perfil FROM Usuarios WHERE id_usuario = :id_usuario";

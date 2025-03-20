@@ -6,7 +6,7 @@
         <img src="<?= base_url('images/logo.png') ?>" alt="Logo" />
     </div>
     <div class="navbar_page">
-        <span>> ANDRO-SIS</span>
+        <span> ANDRO-SIS</span>
     </div>
     <div class="navbar_search">
         <form method="GET" action="/">
