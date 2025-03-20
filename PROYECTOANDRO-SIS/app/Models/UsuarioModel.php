@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Models;
 
 use CodeIgniter\Model;
@@ -8,20 +9,26 @@ class UsuarioModel extends Model
     protected $table = 'usuarios';
     protected $primaryKey = 'id_usuario';
     protected $allowedFields = [
-        'nombre', 'apellido', 'correo', 'contrasena', 'perfil', 'estado', 'imagen_perfil'
+        'nombre',
+        'apellido',
+        'correo',
+        'contrasena',
+        'perfil',
+        'estado',
+        'imagen_perfil'
     ];
     protected $useTimestamps = false;
-    
+
     public function getUserByEmail($email)
     {
         return $this->where('correo', $email)->first();
     }
-    
+
     public function getContratistas()
     {
         return $this->where('perfil', 'contratista')
-                    ->where('estado', 'activo')
-                    ->findAll();
+            ->where('estado', 'activo')
+            ->findAll();
     }
 
     public function getContratistasConEstadisticas()
@@ -51,6 +58,11 @@ class UsuarioModel extends Model
             ORDER BY 
                 u.nombre ASC
         ");
+        return $this->select('usuarios.*, COUNT(proyecto.id_proyectos) as total_proyectos')
+            ->join('proyecto', 'proyecto.id_contratista = usuarios.id_usuario', 'left')
+            ->where('perfil', 'contratista')
+            ->groupBy('usuarios.id_usuario')
+            ->findAll();
 
         return $query->getResultArray();
     }

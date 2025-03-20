@@ -8,8 +8,8 @@ use App\Models\UsuarioModel;
 
 class AdminController extends Controller {
     public function dashboard() {
-        if (!session()->get('isLoggedIn')) {
-            return redirect()->to('/auth/login');
+        if (!session()->get('isLoggedIn') || session()->get('perfil') !== 'admin') {
+            return redirect()->to('auth');
         }
 
         // Cargar modelos

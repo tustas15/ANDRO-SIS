@@ -27,14 +27,14 @@
             <div class="collapse navbar-collapse">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link active" href="<?= site_url('admin/proyectos') ?>">
+                        <a class="nav-link active" href="<?= site_url('newsfeed') ?>">
                             <i class="fa fa-home"></i> Dashboard
                         </a>
                     </li>
                 </ul>
 
                 <div class="d-flex align-items-center">
-                    <img src="<?= base_url('assets/images/' . session('imagen_perfil')) ?>"
+                <img src="assets/images/admin_imagen.jpg">
                         class="rounded-circle me-2" width="35" height="35">
                     <span class="text-light me-3"><?= session('nombre') ?></span>
                     <a href="<?= site_url('auth/logout') ?>" class="btn btn-outline-light">

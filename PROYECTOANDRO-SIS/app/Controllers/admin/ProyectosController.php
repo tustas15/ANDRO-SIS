@@ -7,7 +7,7 @@ use App\Models\CategoriaModel;
 use App\Models\UsuarioModel;
 use App\Models\ProyectoModel;
 
-class Proyectos extends BaseController
+class ProyectosController extends BaseController
 {
     protected $categoriaModel;
     protected $usuarioModel;
@@ -43,7 +43,6 @@ class Proyectos extends BaseController
             $data['categorias'] = $this->categoriaModel->getCategoriasConProyectos();
             $data['contratistas'] = $this->usuarioModel->getContratistasConEstadisticas();
             $data['proyectos'] = $this->proyectoModel->getProyectosRecientes(5);
-
         } catch (\Exception $e) {
             log_message('error', 'Error en Proyectos controller: ' . $e->getMessage());
             session()->setFlashdata('error', 'Error al cargar datos del dashboard');
@@ -72,16 +71,19 @@ class Proyectos extends BaseController
     private function _procesarEliminacionCategoria()
     {
         $id = $this->request->getPost('id_categoria');
-        
+
         if ($this->categoriaModel->tieneProyectos($id)) {
             session()->setFlashdata('error', 'No se puede eliminar: tiene proyectos asociados');
             return;
         }
-        
+
         if ($this->categoriaModel->delete($id)) {
             session()->setFlashdata('mensaje', 'Categoría eliminada');
         } else {
             session()->setFlashdata('error', 'Error al eliminar categoría');
         }
+
+        
+        log_message('info', "Intentando eliminar categoría ID: $id");
     }
 }

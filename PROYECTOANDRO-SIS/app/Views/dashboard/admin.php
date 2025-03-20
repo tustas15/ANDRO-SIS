@@ -26,7 +26,7 @@
             Crear Nueva Categoría
         </div>
         <div class="card-body">
-            <form method="POST" action="<?= route_to('admin.categorias.create') ?>">
+            <form method="POST" action="<?= route_to('admin.proyectos.eliminar') ?>">
                 <?= csrf_field() ?>
 
                 <div class="mb-3">

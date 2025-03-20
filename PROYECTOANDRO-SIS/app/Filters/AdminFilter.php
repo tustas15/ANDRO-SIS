@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Filters;
 
 use CodeIgniter\Filters\FilterInterface;
@@ -9,14 +10,15 @@ class AdminFilter implements FilterInterface
 {
     public function before(RequestInterface $request, $arguments = null)
     {
-        $session = \Config\Services::session();
-        
-        if ($session->get('perfil') !== 'admin') {
-            return redirect()->to('dashboard');
+        $session = session();
+
+        if (!$session->get('isLoggedIn') || $session->get('perfil') !== 'admin') {
+            // Evitar bucle de redirección
+            if (current_url() != site_url('auth')) {
+                return redirect()->to('auth')->with('error', 'Acceso no autorizado');
+            }
         }
     }
 
-    public function after(RequestInterface $request, ResponseInterface $response, $arguments = null)
-    {
-    }
+    public function after(RequestInterface $request, ResponseInterface $response, $arguments = null) {}
 }

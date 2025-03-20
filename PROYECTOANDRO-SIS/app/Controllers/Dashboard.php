@@ -13,36 +13,22 @@ class Dashboard extends BaseController
 
     public function index()
     {
-        // Verificar sesión
-        if (!$this->session->has('user_id')) {
+        // Verificar sesión CORRECTAMENTE
+        if (!session()->get('isLoggedIn')) {
             return redirect()->to('auth');
         }
 
-        // Cargar modelos
-        $categoriaModel = new \App\Models\CategoriaModel();
-        $proyectoModel = new \App\Models\ProyectoModel();
+        // Obtener perfil de la sesión
+        $perfil = session()->get('perfil');
 
-        $data = [
-            'user' => [
-                'id' => $this->session->get('user_id'),
-                'nombre' => $this->session->get('nombre'),
-                'apellido' => $this->session->get('apellido'),
-                'perfil' => $this->session->get('perfil'),
-                'imagen_perfil' => $this->session->get('imagen_perfil')
-            ]
-        ];
-
-        // Load appropriate dashboard based on user profile
-        switch ($this->session->get('perfil')) {
+        // Redirección directa sin lógica adicional
+        switch ($perfil) {
             case 'admin':
-                return $this->adminDashboard($data);
+                return redirect()->to('admin/dashboard');
             case 'contratista':
-                return $this->contratistaDashboard($data);
-            case 'publico':
-                return $this->publicoDashboard($data);
+                return redirect()->to('contratista/proyectos');
             default:
-                $this->session->destroy();
-                return redirect()->to('auth')->with('error', 'Perfil no válido');
+                return redirect()->to('publico/proyectos');
         }
     }
 
@@ -51,7 +37,7 @@ class Dashboard extends BaseController
         $proyectoModel = new \App\Models\ProyectoModel();
         $usuarioModel = new \App\Models\UsuarioModel();
         $contratistas = $usuarioModel->getContratistasConEstadisticas();
-    
+
 
         // Get stats for admin dashboard
         $data['totalProyectos'] = $proyectoModel->countAll();

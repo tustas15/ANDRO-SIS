@@ -12,8 +12,9 @@ class ContratistaFilter implements FilterInterface
         $session = \Config\Services::session();
         
         if ($session->get('perfil') !== 'contratista') {
-            return redirect()->to('dashboard');
+            return redirect()->to('newsfeed');
         }
+        
     }
 
     public function after(RequestInterface $request, ResponseInterface $response, $arguments = null)
