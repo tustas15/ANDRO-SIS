@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 27-02-2025 a las 02:53:46
+-- Tiempo de generación: 14-03-2025 a las 17:48:54
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -62,7 +62,7 @@ CREATE TABLE `comentarios` (
 --
 
 INSERT INTO `comentarios` (`id_comentario`, `id_usuario`, `id_publicacion`, `comentario`, `fecha`) VALUES
-(72, 3, 1, 'Hola estas bien', '2025-02-25 01:18:48');
+(78, 3, 1, 'zorro', '2025-03-10 16:45:10');
 
 -- --------------------------------------------------------
 
@@ -102,8 +102,8 @@ CREATE TABLE `megusta` (
 --
 
 INSERT INTO `megusta` (`id_megusta`, `id_usuario`, `id_publicacion`, `fecha`) VALUES
-(351, 3, 2, '2025-02-25 05:28:58'),
-(357, 3, 1, '2025-02-26 20:30:52');
+(360, 3, 1, '2025-03-10 16:45:05'),
+(361, 3, 2, '2025-03-10 16:45:20');
 
 -- --------------------------------------------------------
 
@@ -220,7 +220,7 @@ CREATE TABLE `usuarios` (
 --
 
 INSERT INTO `usuarios` (`id_usuario`, `nombre`, `apellido`, `correo`, `contrasena`, `perfil`, `estado`, `imagen_perfil`) VALUES
-(1, 'Admin', 'Principal', 'admin@sistema.com', 'hashed_password_123', 'admin', 'activo', 'admin_imagen.jpg'),
+(1, 'Admin', 'Principal', 'admin@sistema.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin', 'activo', 'admin_imagen.jpg'),
 (2, 'Juan', 'Pérez', 'juan.contratista@sistema.com', 'hashed_password_456', 'contratista', 'activo', 'juan_imagen.jpg'),
 (3, 'María', 'Gómez', 'maria.publico@sistema.com', 'hashed_password_789', 'publico', 'activo', 'maria_imagen.jpg');
 
@@ -309,7 +309,7 @@ ALTER TABLE `categorias`
 -- AUTO_INCREMENT de la tabla `comentarios`
 --
 ALTER TABLE `comentarios`
-  MODIFY `id_comentario` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=78;
+  MODIFY `id_comentario` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=79;
 
 --
 -- AUTO_INCREMENT de la tabla `conversaciones`
@@ -321,7 +321,7 @@ ALTER TABLE `conversaciones`
 -- AUTO_INCREMENT de la tabla `megusta`
 --
 ALTER TABLE `megusta`
-  MODIFY `id_megusta` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=360;
+  MODIFY `id_megusta` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=362;
 
 --
 -- AUTO_INCREMENT de la tabla `mensajes`
