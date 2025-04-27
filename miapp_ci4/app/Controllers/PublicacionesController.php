@@ -66,7 +66,6 @@ class PublicacionesController extends BaseController
             'publicaciones' => $publicaciones,
             'pager' => $pager,
             'title' => 'Newsfeed Principal',
-            // Cambiar esto:
             'contratistas' => $this->usuarioModel->getContratistasConEstadisticas(),
             'proyectos' => $this->proyectoModel->orderBy('fecha_publicacion', 'DESC')->findAll(5),
             'categorias' => $this->categoriaModel->findAll()
@@ -77,62 +76,131 @@ class PublicacionesController extends BaseController
 
     public function crear()
     {
-        // Agrega este header para respuestas JSON
         header('Content-Type: application/json');
-        log_message('debug', 'Iniciando método crear()');
-        log_message('debug', 'Datos POST: ' . print_r($this->request->getPost(), true));
-        $validation = \Config\Services::validation();
-        $validation->setRules([
-            'id_proyecto' => 'required|is_not_unique[proyecto.id_proyectos]',
-            'titulo' => 'required|max_length[255]',
-            'contenido' => 'required'
-        ]);
 
-        if (!$validation->withRequest($this->request)->run()) {
-            return $this->response->setJSON([
-                'error' => $validation->getErrors()
-            ]);
+        // Verificar autenticación
+        if (!session('isLoggedIn')) {
+            return $this->response->setJSON(['error' => 'Debe iniciar sesión para publicar']);
         }
-        $proyecto = $this->proyectoModel->find($this->request->getPost('id_proyecto'));
-        if ($proyecto['id_contratista'] != session('id_usuario')) {
-            return $this->response->setJSON(['error' => 'No tienes permisos para este proyecto']);
-        }
+
+        // Validar permisos de usuario
         if (!in_array(session('perfil'), ['admin', 'contratista'])) {
             return $this->response->setJSON(['error' => 'No tienes permisos para publicar']);
         }
 
-        $imagen = $this->request->getFile('imagen');
-        $nombreImagen = null;
-
-        if ($imagen && $imagen->isValid() && !$imagen->hasMoved()) {
-            $nombreImagen = $imagen->getRandomName();
-            $imagen->move(WRITEPATH . 'uploads', $nombreImagen);
-        }
-
-        $this->publicacionModel->save([
-            'id_proyectos' => $this->request->getPost('id_proyecto'),
-            'titulo' => $this->request->getPost('titulo'),
-            'descripcion' => $this->request->getPost('contenido'),
-            'imagen' => $nombreImagen
+        // Configurar reglas de validación
+        $validation = \Config\Services::validation();
+        $validation->setRules([
+            'id_proyecto' => 'required|is_not_unique[proyecto.id_proyectos]',
+            'titulo' => 'required|max_length[255]',
+            'contenido' => 'required',
+            'peso' => 'required|decimal|less_than_equal_to[100]'
         ]);
 
-        $data = [
-            'id_proyectos' => $this->request->getPost('id_proyecto'),
-            'titulo' => $this->request->getPost('titulo'),
-            'descripcion' => $this->request->getPost('contenido'),
-            'imagen' => $nombreImagen
-        ];
+        // Ejecutar validación
+        if (!$validation->withRequest($this->request)->run()) {
+            return $this->response->setJSON(['error' => $validation->getErrors()]);
+        }
 
-        if ($this->publicacionModel->save($data)) {
+        // Obtener datos del POST
+        $idProyecto = $this->request->getPost('id_proyecto');
+        $peso = (float)$this->request->getPost('peso');
+
+        // Verificar propiedad del proyecto
+        $proyecto = $this->proyectoModel->find($idProyecto);
+        if ($proyecto['id_contratista'] != session('id_usuario')) {
+            return $this->response->setJSON(['error' => 'No tienes permisos para este proyecto']);
+        }
+
+        // Validar suma de pesos
+        $totalPeso = $this->publicacionModel
+            ->where('id_proyectos', $idProyecto)
+            ->selectSum('peso')
+            ->get()
+            ->getRow()->peso ?? 0;
+
+        if (($totalPeso + $peso) > 100) {
             return $this->response->setJSON([
-                'success' => true,
-                'message' => 'Publicación creada exitosamente'
+                'error' => ['peso' => 'La suma de porcentajes no puede superar el 100% (Actual: ' . $totalPeso . '%)']
             ]);
         }
 
-        return $this->response->setJSON([
-            'error' => 'Error al guardar la publicación'
-        ]);
+        // Procesar imagen
+        $nombreImagen = null;
+        $imagen = $this->request->getFile('imagen');
+
+        if ($imagen && $imagen->isValid() && !$imagen->hasMoved()) {
+            // Crear directorio si no existe
+            $uploadDir = FCPATH . 'uploads/';
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0777, true);
+            }
+
+            // Generar nombre único
+            $nombreImagen = $imagen->getRandomName();
+            $imagen->move($uploadDir, $nombreImagen);
+        }
+
+        try {
+            // Crear registro
+            $this->publicacionModel->save([
+                'id_proyectos' => $idProyecto,
+                'titulo' => $this->request->getPost('titulo'),
+                'descripcion' => $this->request->getPost('contenido'),
+                'imagen' => $nombreImagen,
+                'peso' => $peso
+            ]);
+
+            // Actualizar estado del proyecto si alcanza 100%
+            if (($totalPeso + $peso) == 100) {
+                $this->proyectoModel->update($idProyecto, ['etapa' => 'finalizado']);
+            }
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Publicación creada exitosamente',
+                'totalPeso' => $totalPeso + $peso
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Error al crear publicación: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'error' => 'Error interno al guardar la publicación'
+            ]);
+        }
+    }
+
+    public function verPublicacion($id_publicacion)
+    {
+        $publicacion = $this->publicacionModel
+            ->select('publicacion.*, proyecto.titulo as proyecto_titulo, usuarios.nombre, usuarios.apellido, usuarios.imagen_perfil')
+            ->join('proyecto', 'proyecto.id_proyectos = publicacion.id_proyectos')
+            ->join('usuarios', 'usuarios.id_usuario = proyecto.id_contratista')
+            ->find($id_publicacion);
+        if (!$publicacion) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        $comentarios = $this->comentarioModel
+            ->select('comentarios.*, usuarios.nombre, usuarios.apellido, usuarios.imagen_perfil')
+            ->join('usuarios', 'usuarios.id_usuario = comentarios.id_usuario')
+            ->where('id_publicacion', $id_publicacion)
+            ->orderBy('fecha', 'ASC')
+            ->findAll();
+
+
+
+        $data = [
+            'contratistas' => $this->usuarioModel->getContratistasConEstadisticas(),
+            'publicacion' => $publicacion,
+            'comentarios' => $comentarios,
+            'total_likes' => $this->megustaModel->obtenerTotalMegustasPublicacion($id_publicacion),
+            'user_like' => $this->megustaModel->usuarioDioMegustaPublicacion(session('id_usuario'), $id_publicacion),
+            'proyectos' => $this->proyectoModel->orderBy('fecha_publicacion', 'DESC')->findAll(5),
+            'categorias' => $this->categoriaModel->findAll()
+
+        ];
+
+        return view('feed', $data);
     }
 
     public function crearComentario()
@@ -148,31 +216,86 @@ class PublicacionesController extends BaseController
 
     public function toggleLike()
     {
-        $idPublicacion = $this->request->getPost('id_publicacion');
-        $idUsuario = session('id_usuario');
-
-        if (
-            $this->megustaModel->where('id_usuario', $idUsuario)
-            ->where('id_publicacion', $idPublicacion)
-            ->countAllResults() > 0
-        ) {
-            // Eliminar like
-            $this->megustaModel->where('id_usuario', $idUsuario)
-                ->where('id_publicacion', $idPublicacion)
-                ->delete();
-            $accion = 'removed';
-        } else {
-            // Agregar like
-            $this->megustaModel->save([
-                'id_usuario' => $idUsuario,
-                'id_publicacion' => $idPublicacion
-            ]);
-            $accion = 'added';
+        if (!$this->request->isAJAX() || !session('isLoggedIn')) {
+            return $this->response->setStatusCode(401)->setJSON(['error' => 'No autorizado']);
         }
 
-        return $this->response->setJSON([
-            'success' => true,
-            'total' => $this->megustaModel->where('id_publicacion', $idPublicacion)->countAllResults()
-        ]);
+        try {
+            $idPublicacion = $this->request->getPost('id_publicacion');
+            $idUsuario = session('id_usuario');
+
+            $accion = $this->megustaModel->toggleLike($idUsuario, $idPublicacion);
+
+            return $this->response->setJSON([
+                'success' => true,
+                'total_likes' => $this->megustaModel->obtenerTotalMegustasPublicacion($idPublicacion),
+                'user_like' => ($accion === 'like')
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Error en toggleLike: ' . $e->getMessage());
+            return $this->response->setStatusCode(500)->setJSON(['error' => 'Error interno']);
+        }
+    }
+
+    public function view($id_proyecto)
+    {
+        // Obtener el proyecto
+        $proyecto = $this->proyectoModel->getProyectoConContratista($id_proyecto);
+
+        // Obtener publicaciones relacionadas
+        $publicaciones = $this->publicacionModel->getPublicacionesConEstadisticas($id_proyecto);
+
+        $data = [
+            
+            'categorias' => $this->categoriaModel->findAll(),
+            'proyectos' => $this->proyectoModel->orderBy('fecha_publicacion', 'DESC')->findAll(5),
+            'proyecto' => $proyecto,
+            'publicaciones' => $publicaciones,
+            'contratistas' => $this->usuarioModel->getContratistasConEstadisticas()
+        ];
+
+        return view('seleccion_proyectos', $data);
+    }
+
+    public function vista()
+    {
+        // Obtener proyectos con su información básica
+        $proyectos = $this->proyectoModel
+            ->select('proyecto.*, categorias.nombre as categoria_nombre, COALESCE(SUM(publicacion.peso), 0) as total_peso')
+            ->join('publicacion', 'publicacion.id_proyectos = proyecto.id_proyectos', 'left')
+            ->join('categorias', 'categorias.id_categoria = proyecto.id_categoria')
+            ->where('proyecto.id_contratista', session('id_usuario'))
+            ->groupBy('proyecto.id_proyectos')
+            ->having('total_peso < 100')
+            ->orderBy('proyecto.fecha_publicacion', 'DESC')
+            ->findAll();
+
+        // Obtener IDs de proyectos para buscar sus publicaciones
+        $proyectoIds = array_column($proyectos, 'id_proyectos');
+
+        // Obtener todas las publicaciones relacionadas
+        $publicaciones = $this->publicacionModel
+            ->whereIn('id_proyectos', $proyectoIds)
+            ->orderBy('fecha_publicacion', 'DESC')
+            ->findAll();
+
+        // Organizar publicaciones por proyecto
+        $publicacionesPorProyecto = [];
+        foreach ($publicaciones as $pub) {
+            $publicacionesPorProyecto[$pub['id_proyectos']][] = $pub;
+        }
+
+        // Asignar publicaciones a cada proyecto
+        foreach ($proyectos as &$proyecto) {
+            $proyecto['publicaciones'] = $publicacionesPorProyecto[$proyecto['id_proyectos']] ?? [];
+        }
+
+        $data = [
+            'proyectos' => $proyectos,
+            'contratistas' => $this->usuarioModel->getContratistasConEstadisticas(),
+            'categorias' => $this->categoriaModel->getCategoriasConProyectos()
+        ];
+
+        return view('crear_publicacion', $data);
     }
 }

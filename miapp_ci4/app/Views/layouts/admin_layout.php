@@ -34,7 +34,7 @@
                 </ul>
 
                 <div class="d-flex align-items-center">
-                <img src="assets/images/admin_imagen.jpg">
+                <img src="assets/images/admin_imagen.jpg"
                         class="rounded-circle me-2" width="35" height="35">
                     <span class="text-light me-3"><?= session('nombre') ?></span>
                     <a href="<?= site_url('auth/logout') ?>" class="btn btn-outline-light">

@@ -1,34 +1,80 @@
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 <script>
-// Manejar envío del formulario con AJAX
-$('#form-publicacion').on('submit', function(e) {
-    e.preventDefault();
-    
-    let formData = new FormData(this);
-    
-    $.ajax({
-        url: '<?= route_to('newsfeed.crear') ?>',
-        type: 'POST',
-        data: formData,
-        processData: false,
-        contentType: false,
-        success: function(response) {
-            if(response.success) {
-                location.reload(); // Recargar la página para ver la nueva publicación
-            } else {
-                alert('Error: ' + (response.error || 'Error desconocido'));
-            }
-        },
-        error: function(xhr) {
-            console.error('Error:', xhr.responseText);
-            alert('Error en el servidor');
-        }
+    $(document).ready(function() {
+        $('.toggle-status').click(function() {
+            const button = $(this);
+            $.ajax({
+                url: '<?= site_url('admin/usuarios/updateStatus') ?>',
+                type: 'POST',
+                dataType: 'json',
+                data: {
+                    id: $(this).data('id'),
+                    <?= csrf_token() ?>: '<?= csrf_hash() ?>'
+                },
+                success: function(response) {
+                    if (response.success) {
+                        button.removeClass('add-friend delete-friend')
+                            .addClass(response.buttonClass)
+                            .text(response.buttonText)
+                            .closest('.friend_title')
+                            .toggleClass('disabled', response.newStatus === 'desactivo');
+                    }
+                }
+            });
+        });
     });
-});
 </script>
 <script>
-    
+    $(document).ready(function() {
+        $('.form-comentario').submit(function(e) {
+            e.preventDefault();
+            const form = $(this);
+            const publicacionId = form.data('publicacion-id');
+
+            $.ajax({
+                url: '<?= site_url('newsfeed/comentar') ?>',
+                method: 'POST',
+                data: {
+                    id_publicacion: publicacionId,
+                    comentario: form.find('textarea').val(),
+                    <?= csrf_token() ?>: '<?= csrf_hash() ?>'
+                },
+                success: function(response) {
+                    if (response.success) {
+                        location.reload(); // Recargar para ver el nuevo comentario
+                    }
+                }
+            });
+        });
+    });
+    // Manejar envío del formulario con AJAX
+    $('#form-publicacion').on('submit', function(e) {
+        e.preventDefault();
+
+        let formData = new FormData(this);
+
+        $.ajax({
+            url: '<?= route_to('newsfeed.crear') ?>',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.success) {
+                    location.reload(); // Recargar la página para ver la nueva publicación
+                } else {
+                    alert('Error: ' + (response.error || 'Error desconocido'));
+                }
+            },
+            error: function(xhr) {
+                console.error('Error:', xhr.responseText);
+                alert('Error en el servidor');
+            }
+        });
+    });
+</script>
+<script>
     // Manejar Me Gusta
     document.querySelectorAll('.form-megusta').forEach(form => {
         form.addEventListener('submit', async (e) => {

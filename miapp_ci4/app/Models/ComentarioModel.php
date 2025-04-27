@@ -24,4 +24,12 @@ class ComentarioModel extends Model
             ->orderBy('fecha', 'ASC')
             ->findAll();
     }
+
+    public function getActividadReciente($limit = 10)
+    {
+        return $this->select('comentarios.*, usuarios.nombre, usuarios.apellido, usuarios.imagen_perfil')
+            ->join('usuarios', 'usuarios.id_usuario = comentarios.id_usuario')
+            ->orderBy('fecha', 'DESC')
+            ->findAll($limit);
+    }
 }

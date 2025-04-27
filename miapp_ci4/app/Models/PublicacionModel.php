@@ -71,4 +71,63 @@ class PublicacionModel extends Model
             ->orderBy('publicacion.fecha_publicacion', 'DESC')
             ->findAll();
     }
+
+    public function getPublicacionesConEstadisticas($id_proyecto)
+    {
+        return $this->select('publicacion.*, 
+            COUNT(DISTINCT megusta.id_megusta) as total_likes, 
+            COUNT(DISTINCT comentarios.id_comentario) as total_comentarios')
+            ->join('megusta', 'megusta.id_publicacion = publicacion.id_publicacion', 'left')
+            ->join('comentarios', 'comentarios.id_publicacion = publicacion.id_publicacion', 'left')
+            ->where('publicacion.id_proyectos', $id_proyecto)
+            ->groupBy('publicacion.id_publicacion')
+            ->orderBy('publicacion.fecha_publicacion', 'DESC')
+            ->findAll();
+    }
+
+    public function getPublicacionesConMetricas()
+    {
+        return $this->db->query("
+        SELECT 
+            pub.*,
+            p.titulo AS proyecto_titulo,
+            u.nombre AS contratista_nombre,
+            COUNT(m.id_megusta) AS total_likes,
+            COUNT(c.id_comentario) AS total_comentarios,
+            DATEDIFF(NOW(), pub.fecha_publicacion) AS dias_publicado
+        FROM publicacion pub
+        JOIN proyecto p ON pub.id_proyectos = p.id_proyectos
+        JOIN usuarios u ON p.id_contratista = u.id_usuario
+        LEFT JOIN megusta m ON pub.id_publicacion = m.id_publicacion
+        LEFT JOIN comentarios c ON pub.id_publicacion = c.id_publicacion
+        GROUP BY pub.id_publicacion
+        ORDER BY pub.fecha_publicacion ASC
+    ")->getResultArray();
+    }
+
+    public function getPublicacionMasPopular()
+    {
+        return $this->db->query("
+        SELECT 
+            pub.titulo,
+            COUNT(m.id_megusta) AS total_likes
+        FROM publicacion pub
+        LEFT JOIN megusta m ON pub.id_publicacion = m.id_publicacion
+        GROUP BY pub.id_publicacion
+        ORDER BY total_likes DESC
+        LIMIT 1
+    ")->getRowArray();
+    }
+
+    public function getTotalCommentsByContractor($idContratista)
+    {
+        return $this->db->table('comentarios')
+            ->select('COUNT(comentarios.id_comentario) as total')
+            ->join('publicacion', 'publicacion.id_publicacion = comentarios.id_publicacion')
+            ->join('proyecto', 'proyecto.id_proyectos = publicacion.id_proyectos')
+            ->where('proyecto.id_contratista', $idContratista)
+            ->get()
+            ->getRow()
+            ->total ?? 0;
+    }
 }

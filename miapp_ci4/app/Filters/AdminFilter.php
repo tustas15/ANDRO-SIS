@@ -11,6 +11,11 @@ class AdminFilter implements FilterInterface
     public function before(RequestInterface $request, $arguments = null)
     {
         $session = session();
+        
+        $currentRoute = uri_string();
+        if (strpos($currentRoute, 'admin/reportes/exportar') === 0) {
+            return;
+        }
 
         if (!$session->get('isLoggedIn') || $session->get('perfil') !== 'admin') {
             // Evitar bucle de redirección

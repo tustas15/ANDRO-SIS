@@ -6,8 +6,8 @@
         </div>
         <?php foreach ($contratistas as $contratista): ?>
             <div class="row_contain">
-                <img src="../public/images/<?= htmlspecialchars($contratista['imagen_perfil'] ?? 'user.jpg') ?>" alt="" />
-                <span><b><?= htmlspecialchars(($contratista['nombre'] ?? '') . ' ' . ($contratista['apellido'] ?? '')) ?></b><br>
+                <img src="<?= base_url('images/usuarios/'.$contratista['imagen_perfil'] ?? 'user.jpg') ?>" alt="" />
+                <span><a href="<?= base_url('contratista/'.$contratista['id_usuario']) ?>"><b><?= htmlspecialchars(($contratista['nombre'] ?? '') . ' ' . ($contratista['apellido'] ?? '')) ?></b></a><br>
                     <div>Proyectos a cargo: <?= $contratista['total_proyectos'] ?? 0 ?></div>
                 </span>
             </div>
@@ -29,7 +29,7 @@
                     ?>
                     <div class="proyecto-item">
                         <span><b>
-                                <a href="detalle_proyecto.php?id=<?= $proyecto['id_proyectos'] ?>"
+                                <a href="<?= base_url('proyecto/'.$proyecto['id_proyectos']) ?>"
                                     class="selected-orange">
                                     <?= $titulo ?></b>
                             <br>
@@ -56,7 +56,7 @@
                 <?php foreach ($categorias as $categoria): ?>
                     <div class="proyecto-item">
                         <span><b>
-                                <a href="detalle_proyecto.php?id=<?= $categoria['id_categoria'] ?>"
+                                <a href="<?= base_url('categoria/'.$categoria['id_categoria']) ?>"
                                     class="selected-orange">
                                     <?= htmlspecialchars($categoria['nombre'] ?? 'Sin nombre') ?></b>
                             <br>

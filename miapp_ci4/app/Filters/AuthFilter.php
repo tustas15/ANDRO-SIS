@@ -16,28 +16,62 @@ class AuthFilter implements FilterInterface
             return redirect()->to('auth');
         }
 
-        // Permitir acceso a newsfeed para todos los roles
-        if (uri_string() == 'newsfeed' && $session->get('isLoggedIn')) {
+        // Obtener ruta actual y método HTTP
+        $currentRoute = uri_string();
+        $method = $request->getMethod();
+
+        // Rutas permitidas para todos los roles (incluyendo métodos POST)
+        $allowedRoutes = [
+            'auth',
+            'auth/login',
+            'auth/process_forgot_password',
+            'auth/reset_password/*', // Permite cualquier token
+            'auth/process_reset_password',
+            'password/reset/*',
+            'newsfeed',
+            'newsfeed/crear',
+            'newsfeed/comentar',
+            'newsfeed/like',
+            'password',
+            'password/update',
+            'publicacion',
+            'categorias',
+            'proyectos',
+            'seleccion_proyectos',
+            'seleccion_categoria'
+        ];
+
+        // Verificar si es una ruta de reset con token
+        if (str_starts_with($currentRoute, 'auth/reset_password/')) {
+            return; // Permitir acceso sin autenticación
+        }
+
+        
+
+        // Redirigir si no está autenticado
+        if (!$session->get('isLoggedIn')) {
+            return redirect()->to('auth');
+        }
+
+        // Permitir acceso a rutas específicas
+        if (in_array($currentRoute, $allowedRoutes)) {
             return;
         }
 
-        // Redirección según rol
+        // Validar prefijo según rol
         $perfil = $session->get('perfil');
-        $currentRoute = $request->getUri()->getPath();
+        $allowedPrefix = match ($perfil) {
+            'admin' => 'admin',
+            'contratista' => 'contratista',
+            'publico' => 'publico',
+            default => ''
+        };
 
-        if ($perfil == 'admin' && !str_starts_with($currentRoute, 'admin')) {
+        // Si la ruta no coincide con el prefijo permitido
+        if ($allowedPrefix && !str_starts_with($currentRoute, $allowedPrefix)) {
             return redirect()->to('newsfeed');
         }
-
-        if ($perfil == 'contratista' && !str_starts_with($currentRoute, 'contratista')) {
-            return redirect()->to('contratista/proyectos');
-        }
-
-        if ($perfil == 'publico' && !str_starts_with($currentRoute, 'publico')) {
-            return redirect()->to('publico/proyectos');
-        }
     }
-
 
     public function after(RequestInterface $request, ResponseInterface $response, $arguments = null)
     {

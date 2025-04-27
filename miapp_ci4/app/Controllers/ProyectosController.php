@@ -1,54 +1,112 @@
 <?php
 
-namespace App\Controllers\Admin;
+namespace App\Controllers;
 
 use App\Controllers\BaseController;
 use App\Models\CategoriaModel;
 use App\Models\UsuarioModel;
 use App\Models\ProyectoModel;
+use App\Models\PublicacionModel;
 
 class ProyectosController extends BaseController
 {
     protected $categoriaModel;
     protected $usuarioModel;
     protected $proyectoModel;
+    protected $publicacionModel;
 
     public function __construct()
     {
         $this->categoriaModel = new CategoriaModel();
         $this->usuarioModel = new UsuarioModel();
         $this->proyectoModel = new ProyectoModel();
+        $this->publicacionModel = new PublicacionModel();
     }
 
+    // Método para mostrar la vista
     public function index()
     {
-        $data = [
-            'categorias' => [],
-            'contratistas' => [],
-            'proyectos' => []
-        ];
+        $proyectos = $this->proyectoModel->getProyectosPorCategoria();
 
-        try {
-            // Procesar creación de categoría
-            if ($this->request->getMethod() === 'post' && $this->request->getPost('crear_categoria')) {
-                $this->_procesarCreacionCategoria();
+        // Agrupar por categoría
+        $proyectosPorCategoria = [];
+        foreach ($proyectos as $proyecto) {
+            $catId = $proyecto['id_categoria'];
+            if (!isset($proyectosPorCategoria[$catId])) {
+                $proyectosPorCategoria[$catId] = [
+                    'nombre' => $proyecto['nombre'],
+                    'proyectos' => []
+                ];
             }
-
-            // Procesar eliminación de categoría
-            if ($this->request->getMethod() === 'post' && $this->request->getPost('eliminar_categoria')) {
-                $this->_procesarEliminacionCategoria();
-            }
-
-            // Obtener datos para el dashboard
-            $data['categorias'] = $this->categoriaModel->getCategoriasConProyectos();
-            $data['contratistas'] = $this->usuarioModel->getContratistasConEstadisticas();
-            $data['proyectos'] = $this->proyectoModel->getProyectosRecientes(5);
-        } catch (\Exception $e) {
-            log_message('error', 'Error en Proyectos controller: ' . $e->getMessage());
-            session()->setFlashdata('error', 'Error al cargar datos del dashboard');
+            $proyectosPorCategoria[$catId]['proyectos'][] = $proyecto;
         }
 
-        return view('dashboard/admin', $data);
+        $data = [
+            'proyectosPorCategoria' => $proyectosPorCategoria,
+            'categorias' => $this->categoriaModel->getCategoriasConProyectos(),
+            'proyectos' => $this->proyectoModel->orderBy('fecha_publicacion', 'DESC')->findAll(5),
+            'contratistas' => $this->usuarioModel->where('perfil', 'contratista')->findAll()
+        ];
+
+        return view('proyectos', $data);
+    }
+
+    // Método para crear
+    public function crear()
+    {
+        if ($this->validate($this->proyectoModel->validationRules)) {
+            $this->proyectoModel->save([
+                'titulo' => $this->request->getPost('titulo'),
+                'id_categoria' => $this->request->getPost('id_categoria'),
+                'id_contratista' => $this->request->getPost('id_contratista'),
+                'presupuesto' => $this->request->getPost('presupuesto'),
+                'etapa' => $this->request->getPost('etapa'),
+                'fecha_publicacion' => date('Y-m-d H:i:s') // Añadir fecha automática
+            ]);
+            return redirect()->back()->with('success', 'Proyecto creado');
+        }
+        return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+    }
+
+    // Método para actualizar
+    public function update()
+    {
+        $data = $this->request->getPost();
+
+        if ($this->proyectoModel->save($data)) {
+            return redirect()->back()->with('success', 'Proyecto actualizado correctamente');
+        }
+
+        return redirect()->back()->with('error', 'Error al actualizar el proyecto');
+    }
+
+    // Método para eliminar
+    public function eliminar()
+    {
+        $id = $this->request->getPost('id_proyectos');
+
+        if (!$id) {
+            return redirect()->back()->with('error', 'ID no proporcionado');
+        }
+
+        // Obtener proyecto con relaciones
+        $proyecto = $this->proyectoModel->getWithDetails($id);
+
+        if (!$proyecto) {
+            return redirect()->back()->with('error', 'Proyecto no encontrado');
+        }
+
+        // Verificar existencia de publicaciones/comentarios
+        if ($proyecto['publicaciones'] > 0 || $proyecto['comentarios'] > 0) {
+            return redirect()->back()->with('error', 'No se puede eliminar: tiene contenido relacionado');
+        }
+
+        // Eliminar
+        if ($this->proyectoModel->delete($id)) {
+            return redirect()->back()->with('success', 'Proyecto eliminado');
+        }
+
+        return redirect()->back()->with('error', 'Error al eliminar');
     }
 
     private function _procesarCreacionCategoria()
@@ -82,7 +140,8 @@ class ProyectosController extends BaseController
         } else {
             session()->setFlashdata('error', 'Error al eliminar categoría');
         }
-        
+
         log_message('info', "Intentando eliminar categoría ID: $id");
     }
+  
 }

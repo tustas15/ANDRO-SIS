@@ -3,6 +3,8 @@
 namespace App\Controllers;
 
 use App\Models\UsuarioModel;
+use App\Models\RecuperacionModel;
+use App\Libraries\ResendService;
 
 class AuthController extends BaseController
 {
@@ -33,14 +35,14 @@ class AuthController extends BaseController
         // Depurar entrada
         $correo = $this->request->getPost('correo');
         $contrasena = $this->request->getPost('contrasena');
-        log_message('error', "Intento de login: $correo / $contrasena");
+
 
         $userModel = new UsuarioModel();
         $user = $userModel->where('correo', $correo)->first();
 
         // Verificar si se encontró el usuario
         if (!$user) {
-            log_message('error', "Usuario no encontrado: $correo");
+
             return redirect()->back()->withInput()->with('error', 'Credenciales incorrectas');
         }
 
@@ -49,7 +51,7 @@ class AuthController extends BaseController
 
         // Verificar contraseña
         if (!password_verify($contrasena, $user['contrasena'])) {
-            log_message('error', "Contraseña no coincide para: $correo");
+
             return redirect()->back()->withInput()->with('error', 'Credenciales incorrectas');
         }
         $rules = [
@@ -112,48 +114,40 @@ class AuthController extends BaseController
             return redirect()->back()->withInput()->with('error', 'No existe una cuenta con este correo');
         }
 
-        // Generate token and save to database
-        $token = bin2hex(random_bytes(32));
+        // Generar token
+        $codigo = bin2hex(random_bytes(32));
         $recoveryModel = new \App\Models\RecuperacionModel();
 
-        $recoveryData = [
+        // Generar token único
+        $token = bin2hex(random_bytes(32));
+
+        // Guardar en recuperacioncontrasenas
+        $recoveryModel->insert([
             'id_usuario' => $user['id_usuario'],
             'token' => $token,
             'usado' => 0
-        ];
+        ]);
 
-        $recoveryModel->insert($recoveryData);
+        // Crear link de recuperación
+        $resetLink = base_url("auth/reset_password/{$token}");
 
-        // Send email with reset link
-        $email = \Config\Services::email();
-        $email->setTo($user['correo']);
-        $email->setSubject('Recuperación de contraseña');
-        $email->setMessage('Para recuperar tu contraseña, haz clic en el siguiente enlace: '
-            . base_url('auth/reset_password/' . $token));
-        $email->send();
+        // Enviar email con Resend
+        $resend = new \App\Libraries\ResendService();
+        $resend->sendEmail(
+            $user['correo'],
+            'Restablece tu contraseña',
+            view('emails/recuperacion', ['resetLink' => $resetLink])
+        );
 
-        return redirect()->back()->with('message', 'Se ha enviado un correo con instrucciones para recuperar tu contraseña');
+        return redirect()->back()->with('message', 'Se ha enviado un correo con el link de recuperación');
     }
-
     public function resetPassword($token)
     {
-        
-        $recoveryModel = new \App\Models\RecuperacionModel();
-        $recovery = $recoveryModel->where('token', $token)
-            ->where('usado', 0)
-            ->first();
+        $recoveryModel = new RecuperacionModel();
+        $recovery = $recoveryModel->tokenValido($token);
 
         if (!$recovery) {
-            return redirect()->to('auth')->with('error', 'Token inválido o ya utilizado');
-        }
-
-        // Check if token is less than 24 hours old
-        $createdDate = new \DateTime($recovery['fecha_solicitud']);
-        $now = new \DateTime();
-        $diff = $now->diff($createdDate);
-
-        if ($diff->days > 0) {
-            return redirect()->to('auth')->with('error', 'El token ha expirado');
+            return redirect()->to('auth')->with('error', 'Enlace inválido o expirado');
         }
 
         return view('auth/reset_password', ['token' => $token]);
@@ -161,8 +155,16 @@ class AuthController extends BaseController
 
     public function processResetPassword()
     {
+        $token = $this->request->getPost('token');
+        $recoveryModel = new RecuperacionModel();
+        $recovery = $recoveryModel->tokenValido($token);
+
+        if (!$recovery) {
+            return redirect()->to('auth')->with('error', 'Enlace inválido o expirado');
+        }
+
+        // Validar contraseñas
         $rules = [
-            'token' => 'required',
             'password' => 'required|min_length[6]',
             'password_confirm' => 'required|matches[password]'
         ];
@@ -171,26 +173,129 @@ class AuthController extends BaseController
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
-        $token = $this->request->getPost('token');
-        $recoveryModel = new \App\Models\RecuperacionModel();
-        $recovery = $recoveryModel->where('token', $token)
-            ->where('usado', 0)
-            ->first();
-
-        if (!$recovery) {
-            return redirect()->to('auth')->with('error', 'Token inválido o ya utilizado');
-        }
-
-        // Update password
+        // Actualizar contraseña
         $userModel = new UsuarioModel();
         $userModel->update($recovery['id_usuario'], [
             'contrasena' => password_hash($this->request->getPost('password'), PASSWORD_DEFAULT)
         ]);
 
-        // Mark token as used
-        $recoveryModel->update($recovery['id_recuperacion'], ['usado' => 1]);
+        // Marcar token como usado
+        $recoveryModel->marcarComoUsado($recovery['id_recuperacion']);
 
-        return redirect()->to('auth')->with('message', 'Contraseña actualizada correctamente');
+        return redirect()->to('auth')->with('success', 'Contraseña restablecida exitosamente');
+    }
+    public function register()
+    {
+        // Si ya está logueado redirigir
+        if (session()->get('isLoggedIn')) {
+            return redirect()->to('dashboard');
+        }
+
+        return view('auth/create_ciudadano');
+    }
+
+    public function processRegister()
+    {
+        $validation = \Config\Services::validation();
+        $validation->setRules([
+            'nombre' => 'required|max_length[100]',
+            'apellido' => 'required|max_length[100]',
+            'correo' => 'required|valid_email|is_unique[usuarios.correo]',
+            'contrasena' => 'required|min_length[6]'
+        ]);
+
+        if (!$validation->withRequest($this->request)->run()) {
+            return redirect()->back()->withInput()->with('errors', $validation->getErrors());
+        }
+
+        $userModel = new UsuarioModel();
+
+        // Generar código de 6 dígitos
+        $codigo = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
+        $userData = [
+            'nombre' => $this->request->getPost('nombre'),
+            'apellido' => $this->request->getPost('apellido'),
+            'correo' => $this->request->getPost('correo'),
+            'contrasena' => password_hash($this->request->getPost('contrasena'), PASSWORD_DEFAULT),
+            'perfil' => 'publico',
+            'codigo_verificacion' => $codigo,
+            'verificado' => 0,
+            'estado' => 'desactivo'
+        ];
+        // Guardar usuario y manejar errores
+        if (!$userModel->save($userData)) {
+            log_message('error', 'Error al guardar usuario: ' . print_r($userModel->errors(), true));
+            return redirect()->back()->withInput()->with('error', 'Error al registrar el usuario. Por favor, intenta nuevamente.');
+        }
+        try {
+            $resend = new \App\Libraries\ResendService();
+            $resend->sendEmail(
+                $userData['correo'],
+                'Verifica tu cuenta',
+                view('emails/verificacion', ['codigo' => $codigo])
+            );
+        } catch (\Exception $e) {
+            log_message('error', 'Error al enviar correo de verificación: ' . $e->getMessage());
+            return redirect()->back()->withInput()->with('error', 'Error al enviar el correo de verificación. Contacta al soporte.');
+        }
+
+        return redirect()->to('auth/verificar')->with('success', 'Código enviado a tu correo');
+    }
+    public function verificar()
+    {
+        // Si ya está logueado redirigir
+        if (session()->get('isLoggedIn')) {
+            return redirect()->to('dashboard');
+        }
+
+        $data = [
+            'title' => 'Verificar Código',
+            'error' => session()->getFlashdata('error'),
+            'success' => session()->getFlashdata('success')
+        ];
+
+        return view('auth/verificar', $data);
+    }
+
+    public function verificarCodigo()
+    {
+        $codigo = $this->request->getPost('codigo');
+        $userModel = new UsuarioModel();
+
+        $user = $userModel->where('codigo_verificacion', $codigo)
+            ->where('estado', 'desactivo')
+            ->first();
+
+        if ($user) {
+            $userModel->update($user['id_usuario'], [
+                'verificado' => 1,
+                'estado' => 'activo',
+                'codigo_verificacion' => null
+            ]);
+            return redirect()->to('auth')->with('success', '¡Cuenta verificada!');
+        }
+
+        return redirect()->back()->with('error', 'Código inválido o expirado');
+    }
+
+    public function verificarRecuperacion()
+    {
+        $codigo = $this->request->getPost('codigo');
+        $recoveryModel = new RecuperacionModel();
+
+        $recovery = $recoveryModel->where('token', $codigo)
+            ->where('usado', 0)
+            ->first();
+
+        if ($recovery) {
+            // Marcar como usado
+            $recoveryModel->update($recovery['id_recuperacion'], ['usado' => 1]);
+            // Redirigir a reset password
+            return redirect()->to("auth/reset_password/{$codigo}");
+        }
+
+        return redirect()->back()->with('error', 'Código inválido o expirado');
     }
 
     public function logout()

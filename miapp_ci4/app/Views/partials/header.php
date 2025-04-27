@@ -2,7 +2,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="x-ua-compatible" content="ie=edge">
 <title><?= $title ?? 'Newsfeed - Social Network' ?></title>
-<link rel="shortcut icon" href="<?= base_url('images/favicon.png') ?>" type="image/x-icon">
+<link rel="shortcut icon" href="<?= base_url('images/logo_esperanza.png') ?>" type="image/x-icon">
 
 <!-- CSS -->
 <link rel="stylesheet" type="text/css" href="<?= base_url('css/style.css') ?>">
