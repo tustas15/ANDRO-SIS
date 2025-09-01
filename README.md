@@ -51,5 +51,3 @@ Este sistema web está diseñado para mejorar la transparencia y la eficiencia e
 
 ---
 
-## Estructura del Proyecto
-
